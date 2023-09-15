@@ -124,11 +124,10 @@ public class NetworkHandler : NetworkBehaviour
 
     private void ClientOnClientDisconnected(ulong clientId)
     {
-        if (IsClient && !IsHost) // Ensure you're not a host
+        if (IsClient && !IsHost)
         {
             currentStatus = NetworkStatus.Disconnected;
         }
-        // Other logic if any
     }
 
     private void OnServerStarted()
