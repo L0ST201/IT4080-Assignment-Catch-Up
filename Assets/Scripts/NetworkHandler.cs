@@ -124,17 +124,12 @@ public class NetworkHandler : NetworkBehaviour
 
     private void ClientOnClientDisconnected(ulong clientId)
     {
-        // Placeholder for furue logic
-    }
-
-    private void ClientOnClientStopped(bool indicator)
-    {
-        if (IsClient)
+        if (IsClient && !IsHost) // Ensure you're not a host
         {
             currentStatus = NetworkStatus.Disconnected;
         }
-        UnsubscribeClientEvents();
-    }      
+        // Other logic if any
+    }
 
     private void OnServerStarted()
     {
@@ -148,7 +143,6 @@ public class NetworkHandler : NetworkBehaviour
         }
         SubscribeServerEvents();
     }
-
 
     private void SubscribeServerEvents()
     {
@@ -213,4 +207,15 @@ public class NetworkHandler : NetworkBehaviour
     {
         UnsubscribeHostEvents();
     }
+
+    private void ClientOnClientStopped(bool indicator)
+    {
+        Debug.Log("Client stopped method triggered");
+        if (IsClient)
+        {
+            currentStatus = NetworkStatus.Disconnected;
+        }
+        UnsubscribeClientEvents();
+    }
+
 }
