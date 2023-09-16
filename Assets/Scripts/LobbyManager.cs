@@ -52,6 +52,7 @@ public class LobbyManager : NetworkBehaviour
 
     public void OnQuitGameButtonClicked()
     {
-        InitializeLobby();
+        startButton.gameObject.SetActive(false);
+        statusLabel.text = "Start something, like the server or the host or the client.";
     }
 }

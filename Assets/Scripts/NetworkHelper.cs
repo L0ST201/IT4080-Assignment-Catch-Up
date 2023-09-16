@@ -15,6 +15,7 @@ public class NetworkHelper : MonoBehaviour
     public Button shutdownButton;
 
     public NetworkHandler networkHandler;
+    public LobbyManager lobbyManager;
 
     private void Start()
     {
@@ -25,7 +26,7 @@ public class NetworkHelper : MonoBehaviour
         if (serverButton != null)
             serverButton.onClick.AddListener(() => NetworkManager.Singleton.StartServer());
         
-        if (shutdownButton != null)
+         if (shutdownButton != null)
         {
             shutdownButton.onClick.AddListener(() => 
             {
@@ -37,6 +38,12 @@ public class NetworkHelper : MonoBehaviour
                 else
                 {
                     NetworkManager.Singleton.Shutdown();
+                }
+
+                // Call the LobbyManager's method to reset the UI
+                if (lobbyManager != null)
+                {
+                    lobbyManager.OnQuitGameButtonClicked();
                 }
             });
         }
