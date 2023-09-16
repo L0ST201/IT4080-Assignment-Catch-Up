@@ -1,91 +1,57 @@
-/* using Unity.Netcode;
+using System.Collections;
+using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UI;
+using TMPro; 
+using UnityEngine.Networking;
 
 public class LobbyManager : NetworkBehaviour
 {
-    public NetworkObject startButton;
-    public NetworkObject hostButton; 
-    public NetworkObject joinButton;
-    public NetworkObject quitButton;
+    public Button startButton;
+    public TMPro.TMP_Text statusLabel;
 
-    public string ipAddress = "127.0.0.1";
-
-    public override void OnNetworkSpawn()
+    void Start()
     {
-        if(IsServer)
-        {
-            startButton.gameObject.SetActive(true);
-        }
-        else 
-        {
-            startButton.gameObject.SetActive(false);
-        }
+        InitializeLobby();
+        
+        startButton.onClick.AddListener(OnStartButtonClicked);
+        NetworkManager.Singleton.OnClientStarted += OnClientStarted;
+        NetworkManager.Singleton.OnServerStarted += OnServerStarted;
+    }
 
-        if(IsClient)
+    private void InitializeLobby()
+    {
+        startButton.gameObject.SetActive(false);
+        statusLabel.text = "Start something, like the server or the host or the client.";
+    }
+
+    private void OnClientStarted()
+    {
+        if (!IsHost)
         {
-            hostButton.gameObject.SetActive(false);
-            joinButton.gameObject.SetActive(false);
-            quitButton.gameObject.SetActive(true);
-        }
-        else
-        {
-            hostButton.gameObject.SetActive(true);
-            joinButton.gameObject.SetActive(true);
-            quitButton.gameObject.SetActive(false);
+            statusLabel.text = "Waiting for host to start the game";
         }
     }
 
-    public void HostGame()
+    private void OnServerStarted()
     {
-        NetworkManager.Singleton.ConnectionApprovalCallback += ApprovalCheck;
-        NetworkManager.Singleton.StartHost();
-
         startButton.gameObject.SetActive(true);
-        hostButton.gameObject.SetActive(false);
-        joinButton.gameObject.SetActive(false);
-        quitButton.gameObject.SetActive(true);
+        statusLabel.text = "You are the host, please press start game when you are ready";
     }
 
-    public void JoinGame()
+    private void OnStartButtonClicked()
     {
-        NetworkManager.Singleton.NetworkConfig.ConnectionData = System.Text.Encoding.ASCII.GetBytes(ipAddress);
-        NetworkManager.Singleton.StartClient();
-
-        startButton.gameObject.SetActive(false);
-        hostButton.gameObject.SetActive(false);
-        joinButton.gameObject.SetActive(false);
-        quitButton.gameObject.SetActive(true);
-    }
-
-    public void QuitGame()
-    {
-        if(IsServer)
-        {
-            NetworkManager.Singleton.StopHost();
-        }
-        else if(IsClient)
-        {
-            NetworkManager.Singleton.StopClient();
-        }
-
-        startButton.gameObject.SetActive(false);
-        hostButton.gameObject.SetActive(true);
-        joinButton.gameObject.SetActive(true);
-        quitButton.gameObject.SetActive(false);
+        StartGame();
     }
 
     public void StartGame()
     {
-        if(IsServer)
-        {
-            NetworkSceneManager.SwitchScene("GameScene");
-        }
+        UnityEngine.SceneManagement.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
-    public void ApprovalCheck(byte[] connectionData, ulong clientId, NetworkManager.ConnectionApprovedDelegate callback)
+    public void OnQuitGameButtonClicked()
     {
-        string ipAddress = System.Text.Encoding.ASCII.GetString(connectionData);
-        callback(true, null, false, null, null);
+        InitializeLobby();
     }
 }
- */
