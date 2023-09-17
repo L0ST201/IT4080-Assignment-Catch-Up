@@ -1,47 +1,76 @@
+using UnityEngine;
+using Unity.Netcode;
+using TMPro.Examples;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Netcode;
-using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class Player : NetworkBehaviour
-{    public float movementSpeed = 50f;
-    public float rotationSpeed = 130f;
+{
+    [SerializeField] private float movementSpeed = 5f;
+    [SerializeField] private float mouseSensitivity = 2f;
+    [SerializeField] private float jumpForce = 7f;
+    [SerializeField] private float gravity = 9.81f;
+
+    private Camera playerCamera;
+    private Vector3 moveDirection = Vector3.zero;
+    private CharacterController characterController;
+    private float verticalLookRotation = 0f;
+
+    private void Start() 
+    {
+        characterController = GetComponent<CharacterController>();
+        playerCamera = transform.Find("Camera").GetComponent<Camera>();
+
+        // Ensure camera is active only for the local player.
+        if (IsOwner)
+        {
+            playerCamera.gameObject.SetActive(true);
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+        else
+        {
+            playerCamera.gameObject.SetActive(false);
+        }
+    }
 
     private void Update()
     {
+        if (IsOwner) 
+        {
             HandleInput();
-    }
-
-    private void HandleInput() {
-            transform.Translate(CalcMovement());
-            transform.Rotate(CalcRotation());
-    }
-    // Rotate around the y axis when shift is not pressed
-    private Vector3 CalcRotation() {
-        bool isShiftKeyDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        Vector3 rotVect = Vector3.zero;
-        if (!isShiftKeyDown) {
-            rotVect = new Vector3(0, Input.GetAxis("Horizontal"), 0);
-            rotVect *= rotationSpeed * Time.deltaTime;
+            HandleMouseLook();
         }
-        return rotVect;
     }
 
+    private void HandleInput()
+    {
+        float xMove = Input.GetAxis("Horizontal");
+        float zMove = Input.GetAxis("Vertical");
 
-    // Move up and back, and strafe when shift is pressed
-    private Vector3 CalcMovement() {
-        bool isShiftKeyDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        float x_move = 0.0f;
-        float z_move = Input.GetAxis("Vertical");
+        Vector3 move = transform.right * xMove + transform.forward * zMove;
+        moveDirection.x = move.x * movementSpeed;
+        moveDirection.z = move.z * movementSpeed;
 
-        if (isShiftKeyDown) {
-            x_move = Input.GetAxis("Horizontal");
+        if(characterController.isGrounded && Input.GetButtonDown("Jump"))
+        {
+            moveDirection.y = jumpForce;
         }
+        moveDirection.y -= gravity * Time.deltaTime;
 
-        Vector3 moveVect = new Vector3(x_move, 0, z_move);
-        moveVect *= movementSpeed * Time.deltaTime;
+        characterController.Move(moveDirection * Time.deltaTime);
+    }
 
-        return moveVect;
+    private void HandleMouseLook()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        verticalLookRotation -= mouseY;
+        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
+
+        playerCamera.transform.localRotation = Quaternion.Euler(verticalLookRotation, 0f, 0f);
+        transform.Rotate(Vector3.up * mouseX);
     }
 }

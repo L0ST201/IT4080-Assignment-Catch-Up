@@ -36,7 +36,15 @@ public class Arena1Game : NetworkBehaviour
         foreach (ulong clientId in NetworkManager.ConnectedClientsIds)
         {
             Player playerSpawn = Instantiate(playerPrefab, NextPosition(), Quaternion.identity);
-            playerSpawn.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+            NetworkObject networkObject = playerSpawn.GetComponent<NetworkObject>();
+            networkObject.SpawnWithOwnership(clientId);
+
+            // Enable AudioListener only for the local player
+            AudioListener audioListener = playerSpawn.GetComponentInChildren<AudioListener>();
+            if (audioListener)
+            {
+                audioListener.enabled = networkObject.IsOwner;
+            }
         }
     }
 }
