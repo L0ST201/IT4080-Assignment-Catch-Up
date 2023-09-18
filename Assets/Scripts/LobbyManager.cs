@@ -42,6 +42,19 @@ public class LobbyManager : NetworkBehaviour
 
     private void OnStartButtonClicked()
     {
+        StartGameServerRpc();
+    }
+
+    [ServerRpc]
+    public void StartGameServerRpc()
+    {
+        StartGame();
+        StartGameClientRpc();
+    }
+
+    [ClientRpc]
+    public void StartGameClientRpc()
+    {
         StartGame();
     }
 

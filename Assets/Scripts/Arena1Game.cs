@@ -17,9 +17,12 @@ public class Arena1Game : NetworkBehaviour
         new Vector3(0, 2, -4)
     };
 
-    void Start()
+    private void Start()
     {
+        if (NetworkManager.Singleton.IsServer)
+        {
             SpawnPlayers();
+        }
     }
 
     private Vector3 NextPosition() {
@@ -33,13 +36,18 @@ public class Arena1Game : NetworkBehaviour
 
     private void SpawnPlayers()
     {
-        foreach (ulong clientId in NetworkManager.ConnectedClientsIds)
+        if (!NetworkManager.Singleton.IsServer)
+        {
+            Debug.LogWarning("SpawnPlayers should only be called on the server.");
+            return;
+        }
+
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Player playerSpawn = Instantiate(playerPrefab, NextPosition(), Quaternion.identity);
             NetworkObject networkObject = playerSpawn.GetComponent<NetworkObject>();
             networkObject.SpawnWithOwnership(clientId);
 
-            // Enable AudioListener only for the local player
             AudioListener audioListener = playerSpawn.GetComponentInChildren<AudioListener>();
             if (audioListener)
             {
