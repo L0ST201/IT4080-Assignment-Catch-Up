@@ -24,6 +24,12 @@ public class Arena1Game : NetworkBehaviour
             return;
         }
 
+        if (!playerPrefab)
+        {
+            Debug.LogError("Player prefab is not assigned.");
+            return;
+        }
+
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Player playerSpawn = Instantiate(playerPrefab, playerPrefab.transform.position, Quaternion.identity);

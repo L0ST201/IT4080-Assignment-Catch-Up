@@ -15,10 +15,10 @@ public class Player : NetworkBehaviour
     private Vector3 moveDirection = Vector3.zero;
     private CharacterController characterController;
     private float verticalLookRotation = 0f;
+
     private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
         NetworkVariableReadPermission.Everyone, 
         NetworkVariableWritePermission.Server);
-
 
     public NetworkVariable<Color> NetworkedColor
     {
@@ -52,7 +52,19 @@ public class Player : NetworkBehaviour
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
+        if (!characterController)
+        {
+            Debug.LogError("CharacterController not found on player.");
+            return;
+        }
+
         playerCamera = transform.Find("Camera").GetComponent<Camera>();
+        if (!playerCamera)
+        {
+            Debug.LogError("Player camera not found.");
+            return;
+        }
+
         playerCamera.enabled = networkObject.IsOwner;
 
         headRenderer = transform.Find("SK_Soldier_Head").GetComponent<Renderer>();
@@ -141,7 +153,7 @@ public class Player : NetworkBehaviour
         }
         moveDirection.y -= gravity * Time.deltaTime;
 
-        MoveServerRpc(moveDirection * Time.deltaTime, Vector3.zero);
+        MoveServerRpc(moveDirection * Time.deltaTime);
     }
 
     private void HandleMouseLook()
@@ -155,31 +167,29 @@ public class Player : NetworkBehaviour
         playerCamera.transform.localRotation = Quaternion.Euler(verticalLookRotation, 0f, 0f);
 
         transform.Rotate(Vector3.up * mouseX);
-        MoveServerRpc(Vector3.zero, Vector3.up * mouseX);
+        RotateServerRpc(Vector3.up * mouseX);
     }
 
     [ServerRpc]
-    private void MoveServerRpc(Vector3 movement, Vector3 rotation)
+    private void MoveServerRpc(Vector3 movement)
     {
-        if (movement == Vector3.zero && rotation == Vector3.zero)
-        {
-            return;
-        }
         characterController.Move(movement);
-        
-        if (rotation != Vector3.zero && transform.rotation != Quaternion.Euler(rotation))
-        {
-            transform.Rotate(rotation);
-            networkedRotation.Value = transform.rotation;
-        }
-
         if (transform.position != networkedPosition.Value)
         {
             networkedPosition.Value = transform.position;
         }
     }
 
-    // New ServerRpc to request a color for a player
+    [ServerRpc]
+    private void RotateServerRpc(Vector3 rotation)
+    {
+        if (rotation != Vector3.zero && transform.rotation != Quaternion.Euler(rotation))
+        {
+            transform.Rotate(rotation);
+            networkedRotation.Value = transform.rotation;
+        }
+    }
+
     [ServerRpc]
     private void RequestColorServerRpc()
     {
@@ -191,8 +201,51 @@ public class Player : NetworkBehaviour
         }
         else
         {
-            // Handle scenario where no colors are available (maybe assign a default color or recycle from a used list)
-            NetworkedColor.Value = Color.gray; // Example default color
+            NetworkedColor.Value = Color.gray; // Default color
+        }
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        try 
+        {
+            if (IsServer)
+            {
+                if (networkObject == null)
+                {
+                    Debug.LogError("OnNetworkDespawn: networkObject is null");
+                    return;
+                }
+
+                if (!networkObject.IsSpawned)
+                {
+                    Debug.LogError("OnNetworkDespawn: networkObject is not spawned");
+                    return;
+                }
+
+                if (NetworkedColor == null)
+                {
+                    Debug.LogError("OnNetworkDespawn: NetworkedColor is null");
+                    return;
+                }
+
+                if (availableColors == null)
+                {
+                    Debug.LogError("OnNetworkDespawn: availableColors is null");
+                    return;
+                }
+
+                if (availableColors.Count <= 5)  // Assuming 5 is the maximum number of players/colors
+                {
+                    availableColors.Add(NetworkedColor.Value);
+                }
+
+                NetworkedColor.Value = Color.gray;  // Reset color to default when despawning
+            }
+        } 
+        catch (System.Exception e) 
+        {
+            Debug.LogError("Error in OnNetworkDespawn: " + e.Message);
         }
     }
 }
