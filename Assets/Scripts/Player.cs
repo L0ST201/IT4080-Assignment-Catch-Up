@@ -1,6 +1,7 @@
 using UnityEngine;
 using Unity.Netcode;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Player : NetworkBehaviour
 {
@@ -14,8 +15,11 @@ public class Player : NetworkBehaviour
     private Vector3 moveDirection = Vector3.zero;
     private CharacterController characterController;
     private float verticalLookRotation = 0f;
+    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
+        NetworkVariableReadPermission.Everyone, 
+        NetworkVariableWritePermission.Server);
 
-    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>();
+
     public NetworkVariable<Color> NetworkedColor
     {
         get { return networkedColor; }
@@ -24,17 +28,20 @@ public class Player : NetworkBehaviour
 
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
+
     private Renderer headRenderer;
     private Renderer legsRenderer;
     private Renderer torsoRenderer;
     private NetworkObject networkObject;
 
-    private int colorIndex = 0;
-    private Color[] playerColors = new Color[] {
+    // A static list to keep track of available colors
+    private static List<Color> availableColors = new List<Color>
+    {
+        Color.black,
         Color.blue,
         Color.green,
         Color.yellow,
-        Color.magenta,
+        Color.magenta
     };
 
     private void Awake()
@@ -51,11 +58,16 @@ public class Player : NetworkBehaviour
         headRenderer = transform.Find("SK_Soldier_Head").GetComponent<Renderer>();
         legsRenderer = transform.Find("SK_Soldier_Legs").GetComponent<Renderer>();
         torsoRenderer = transform.Find("SK_Soldier_Torso").GetComponent<Renderer>();
+
+        if (networkObject.IsOwner)
+        {
+            // If the object is owned by the local client, request a color
+            RequestColorServerRpc();
+        }
     }
 
     public override void OnNetworkSpawn()
     {
-        StartCoroutine(DelayedNetworkInitialization());
         networkedColor.OnValueChanged += OnColorChanged;
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
@@ -89,29 +101,8 @@ public class Player : NetworkBehaviour
 
     private void OnColorChanged(Color oldValue, Color newValue)
     {
+        Debug.Log($"Color changed from {oldValue} to {newValue}");
         SetPlayerColor(newValue);
-    }
-
-    private IEnumerator DelayedNetworkInitialization()
-    {
-        yield return new WaitForSeconds(0.1f);
-        if (IsServer && IsOwner)
-        {
-            SetPlayerColor(Color.white);
-            NetworkedColor.Value = Color.white;
-        }
-        else if (!IsOwner)
-        {
-            SetPlayerColor(Color.black);
-            if (!IsServer)
-            {
-                RequestHostColorClientRpc();
-            }
-        }
-        else
-        {
-            SetPlayerColor(Color.black);
-        }
     }
 
     private void Update()
@@ -120,7 +111,6 @@ public class Player : NetworkBehaviour
         {
             OwnerHandleInput();
             HandleMouseLook();
-            HandleColorChange();
         }
     }
 
@@ -168,14 +158,6 @@ public class Player : NetworkBehaviour
         MoveServerRpc(Vector3.zero, Vector3.up * mouseX);
     }
 
-    private void HandleColorChange()
-    {
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-        {
-            NetworkedColor.Value = NextColor();
-        }
-    }
-
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement, Vector3 rotation)
     {
@@ -197,14 +179,20 @@ public class Player : NetworkBehaviour
         }
     }
 
-    public Color NextColor()
+    // New ServerRpc to request a color for a player
+    [ServerRpc]
+    private void RequestColorServerRpc()
     {
-        Color newColor = playerColors[colorIndex];
-        colorIndex += 1;
-        if (colorIndex > playerColors.Length - 1)
+        if (availableColors.Count > 0)
         {
-            colorIndex = 0;
+            Color assignedColor = availableColors[0];
+            availableColors.RemoveAt(0);
+            NetworkedColor.Value = assignedColor;
         }
-        return newColor;
+        else
+        {
+            // Handle scenario where no colors are available (maybe assign a default color or recycle from a used list)
+            NetworkedColor.Value = Color.gray; // Example default color
+        }
     }
 }
