@@ -25,10 +25,12 @@ public class Arena1Game : NetworkBehaviour
         }
     }
 
-    private Vector3 NextPosition() {
+    private Vector3 NextPosition() 
+    {
         Vector3 pos = startPositions[positionIndex];
         positionIndex += 1;
-        if (positionIndex > startPositions.Length - 1) {
+        if (positionIndex > startPositions.Length - 1) 
+        {
             positionIndex = 0;
         }
         return pos;
@@ -47,6 +49,8 @@ public class Arena1Game : NetworkBehaviour
             Player playerSpawn = Instantiate(playerPrefab, NextPosition(), Quaternion.identity);
             NetworkObject networkObject = playerSpawn.GetComponent<NetworkObject>();
             networkObject.SpawnWithOwnership(clientId);
+
+            playerSpawn.NetworkedColor.Value = playerSpawn.NextColor();
 
             AudioListener audioListener = playerSpawn.GetComponentInChildren<AudioListener>();
             if (audioListener)

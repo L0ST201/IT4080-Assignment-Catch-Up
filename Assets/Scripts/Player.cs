@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using System.Collections;
 
 public class Player : NetworkBehaviour
 {
@@ -14,25 +15,59 @@ public class Player : NetworkBehaviour
     private CharacterController characterController;
     private float verticalLookRotation = 0f;
 
+    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>();
+    public NetworkVariable<Color> NetworkedColor
+    {
+        get { return networkedColor; }
+        set { networkedColor = value; }
+    }
+
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
+    private Renderer headRenderer;
+    private Renderer legsRenderer;
+    private Renderer torsoRenderer;
+    private NetworkObject networkObject;
 
-    private void Start() 
+    private int colorIndex = 0;
+    private Color[] playerColors = new Color[] {
+        Color.blue,
+        Color.green,
+        Color.yellow,
+        Color.magenta,
+    };
+
+    private void Awake()
+    {
+        networkObject = GetComponent<NetworkObject>();
+    }
+
+    private void Start()
     {
         characterController = GetComponent<CharacterController>();
         playerCamera = transform.Find("Camera").GetComponent<Camera>();
-        
-        if (!IsOwner)
-        {
-            playerCamera.enabled = false;
-        }
-        else
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+        playerCamera.enabled = networkObject.IsOwner;
+
+        headRenderer = transform.Find("SK_Soldier_Head").GetComponent<Renderer>();
+        legsRenderer = transform.Find("SK_Soldier_Legs").GetComponent<Renderer>();
+        torsoRenderer = transform.Find("SK_Soldier_Torso").GetComponent<Renderer>();
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        StartCoroutine(DelayedNetworkInitialization());
+        networkedColor.OnValueChanged += OnColorChanged;
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
+    }
+
+    [ClientRpc]
+    public void RequestHostColorClientRpc()
+    {
+        if (IsServer && IsOwner)
+        {
+            NetworkedColor.Value = NetworkedColor.Value;
+        }
     }
 
     private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
@@ -45,20 +80,54 @@ public class Player : NetworkBehaviour
         transform.rotation = newValue;
     }
 
+    private void SetPlayerColor(Color color)
+    {
+        if (headRenderer != null) headRenderer.material.color = color;
+        if (legsRenderer != null) legsRenderer.material.color = color;
+        if (torsoRenderer != null) torsoRenderer.material.color = color;
+    }
+
+    private void OnColorChanged(Color oldValue, Color newValue)
+    {
+        SetPlayerColor(newValue);
+    }
+
+    private IEnumerator DelayedNetworkInitialization()
+    {
+        yield return new WaitForSeconds(0.1f);
+        if (IsServer && IsOwner)
+        {
+            SetPlayerColor(Color.white);
+            NetworkedColor.Value = Color.white;
+        }
+        else if (!IsOwner)
+        {
+            SetPlayerColor(Color.black);
+            if (!IsServer)
+            {
+                RequestHostColorClientRpc();
+            }
+        }
+        else
+        {
+            SetPlayerColor(Color.black);
+        }
+    }
+
     private void Update()
     {
-        if (IsOwner) 
+        if (IsOwner)
         {
             OwnerHandleInput();
             HandleMouseLook();
+            HandleColorChange();
         }
     }
 
     private bool IsPlayerGrounded()
     {
         float extraHeightText = 0.1f;
-        bool grounded = Physics.Raycast(characterController.bounds.center,
-        Vector3.down, characterController.bounds.extents.y + extraHeightText);
+        bool grounded = Physics.Raycast(characterController.bounds.center, Vector3.down, characterController.bounds.extents.y + extraHeightText);
         return grounded;
     }
 
@@ -68,9 +137,9 @@ public class Player : NetworkBehaviour
         float zMove = Input.GetAxis("Vertical");
 
         bool isShiftKeyDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-        
+
         Vector3 move = transform.right * xMove + transform.forward * zMove;
-        
+
         float currentSpeed = isShiftKeyDown ? movementSpeed * slowWalkMultiplier : movementSpeed;
 
         moveDirection.x = move.x * currentSpeed;
@@ -82,7 +151,7 @@ public class Player : NetworkBehaviour
         }
         moveDirection.y -= gravity * Time.deltaTime;
 
-        MoveServerRpc(moveDirection * Time.deltaTime, Vector3.zero); 
+        MoveServerRpc(moveDirection * Time.deltaTime, Vector3.zero);
     }
 
     private void HandleMouseLook()
@@ -99,6 +168,14 @@ public class Player : NetworkBehaviour
         MoveServerRpc(Vector3.zero, Vector3.up * mouseX);
     }
 
+    private void HandleColorChange()
+    {
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            NetworkedColor.Value = NextColor();
+        }
+    }
+
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement, Vector3 rotation)
     {
@@ -108,11 +185,26 @@ public class Player : NetworkBehaviour
         }
         characterController.Move(movement);
         
-        if(rotation != Vector3.zero)
+        if (rotation != Vector3.zero && transform.rotation != Quaternion.Euler(rotation))
         {
             transform.Rotate(rotation);
             networkedRotation.Value = transform.rotation;
         }
-        networkedPosition.Value = transform.position;
+
+        if (transform.position != networkedPosition.Value)
+        {
+            networkedPosition.Value = transform.position;
+        }
+    }
+
+    public Color NextColor()
+    {
+        Color newColor = playerColors[colorIndex];
+        colorIndex += 1;
+        if (colorIndex > playerColors.Length - 1)
+        {
+            colorIndex = 0;
+        }
+        return newColor;
     }
 }
