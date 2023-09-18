@@ -42,24 +42,44 @@ public class LobbyManager : NetworkBehaviour
 
     private void OnStartButtonClicked()
     {
-        StartGameServerRpc();
+        Debug.Log("Start Game button clicked");
+        if (NetworkManager.Singleton.IsServer)
+        {
+            Debug.Log("This instance recognizes itself as a server");
+            // Directly calling the logic instead of the RPC
+            StartGame();
+            StartGameClientRpc();
+        }
+        else
+        {
+            Debug.Log("This instance does not recognize itself as a server");
+        }
     }
 
     [ServerRpc]
     public void StartGameServerRpc()
     {
+        if (!NetworkManager.Singleton.IsServer)
+        {
+            Debug.LogError("StartGameServerRpc was called, but this instance is not a server.");
+            return;
+        }
+        Debug.Log("Inside StartGameServerRpc on server");
         StartGame();
         StartGameClientRpc();
     }
 
+
     [ClientRpc]
     public void StartGameClientRpc()
     {
+        Debug.Log("Inside StartGameClientRpc on client");
         StartGame();
     }
 
     public void StartGame()
     {
+        Debug.Log("Attempting to load ArenaOne scene");
         UnityEngine.SceneManagement.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
