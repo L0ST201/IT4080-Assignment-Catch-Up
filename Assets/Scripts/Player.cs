@@ -10,6 +10,7 @@ public class Player : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float gravity = 9.81f;
+    [SerializeField] private Vector2 spawnAreaSize = new Vector2(5, 5);
 
     private Camera playerCamera;
     private Vector3 moveDirection = Vector3.zero;
@@ -34,7 +35,6 @@ public class Player : NetworkBehaviour
     private Renderer torsoRenderer;
     private NetworkObject networkObject;
 
-    // A static list to keep track of available colors
     private static List<Color> availableColors = new List<Color>
     {
         Color.black,
@@ -43,6 +43,20 @@ public class Player : NetworkBehaviour
         Color.yellow,
         Color.magenta
     };
+
+    private Vector3 boundaryCenter = new Vector3(0, 2.5f, 0);
+
+    private static NetworkVariable<int> positionIndex = new NetworkVariable<int>(0);
+    private Vector3[] startPositions = new Vector3[]
+    {
+        new Vector3(4, 2, 0),
+        new Vector3(-4, 2, 0),
+        new Vector3(0, 2, 4),
+        new Vector3(0, 2, -4)
+    };
+
+    private Vector3 spawnPosition;
+    public ParticleSystem hostParticleEffectPrefab;
 
     private void Awake()
     {
@@ -75,6 +89,19 @@ public class Player : NetworkBehaviour
         {
             // If the object is owned by the local client, request a color
             RequestColorServerRpc();
+
+            // Instantiate particle effect for the host using MLAPI's instantiation method
+            if (NetworkManager.Singleton && hostParticleEffectPrefab) 
+            {
+                var effectInstance = NetworkObject.Instantiate(hostParticleEffectPrefab);
+                effectInstance.transform.SetParent(transform);
+                effectInstance.transform.position = transform.position;
+                var particleSystem = effectInstance.GetComponent<ParticleSystem>();
+                if (particleSystem)
+                {
+                    particleSystem.Play();
+                }
+            }
         }
     }
 
@@ -83,15 +110,27 @@ public class Player : NetworkBehaviour
         networkedColor.OnValueChanged += OnColorChanged;
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
+
+        AssignSpawnPoint();
     }
 
-    [ClientRpc]
-    public void RequestHostColorClientRpc()
+    private void AssignSpawnPoint()
     {
-        if (IsServer && IsOwner)
+        if (IsServer)
         {
-            NetworkedColor.Value = NetworkedColor.Value;
+            spawnPosition = GenerateSpawnPosition();
+            transform.position = spawnPosition;
         }
+    }
+
+    private Vector3 GenerateSpawnPosition()
+    {
+        if (positionIndex.Value >= startPositions.Length)
+        {
+            positionIndex.Value = 0;  // Reset the index if it exceeds the array length
+        }
+        
+        return startPositions[positionIndex.Value++];
     }
 
     private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
@@ -173,7 +212,21 @@ public class Player : NetworkBehaviour
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement)
     {
+        // Apply the movement.
         characterController.Move(movement);
+
+        // Boundary enforcement.
+        if (!networkObject.IsOwner) // If not the host.
+        {
+            float halfPlaneSize = 2.5f; // Half of 5 for a 5x5 movement area
+            Vector3 newPosition = transform.position;
+
+            newPosition.x = Mathf.Clamp(newPosition.x, -halfPlaneSize, halfPlaneSize);
+            newPosition.z = Mathf.Clamp(newPosition.z, -halfPlaneSize, halfPlaneSize);
+
+            transform.position = newPosition;
+        }
+
         if (transform.position != networkedPosition.Value)
         {
             networkedPosition.Value = transform.position;
@@ -201,7 +254,7 @@ public class Player : NetworkBehaviour
         }
         else
         {
-            NetworkedColor.Value = Color.gray; // Default color
+            NetworkedColor.Value = Color.gray;
         }
     }
 
