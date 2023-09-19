@@ -40,7 +40,6 @@ public class NetworkHelper : MonoBehaviour
                     NetworkManager.Singleton.Shutdown();
                 }
 
-                // Call the LobbyManager's method to reset the UI
                 if (lobbyManager != null)
                 {
                     lobbyManager.OnQuitGameButtonClicked();

@@ -87,10 +87,7 @@ public class Player : NetworkBehaviour
 
         if (networkObject.IsOwner)
         {
-            // If the object is owned by the local client, request a color
             RequestColorServerRpc();
-
-            // Instantiate particle effect for the host using MLAPI's instantiation method
             if (NetworkManager.Singleton && hostParticleEffectPrefab) 
             {
                 var effectInstance = NetworkObject.Instantiate(hostParticleEffectPrefab);
@@ -127,7 +124,7 @@ public class Player : NetworkBehaviour
     {
         if (positionIndex.Value >= startPositions.Length)
         {
-            positionIndex.Value = 0;  // Reset the index if it exceeds the array length
+            positionIndex.Value = 0;
         }
         
         return startPositions[positionIndex.Value++];
@@ -212,13 +209,12 @@ public class Player : NetworkBehaviour
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement)
     {
-        // Apply the movement.
+    
         characterController.Move(movement);
 
-        // Boundary enforcement.
-        if (!networkObject.IsOwner) // If not the host.
+        if (!networkObject.IsOwner) 
         {
-            float halfPlaneSize = 2.5f; // Half of 5 for a 5x5 movement area
+            float halfPlaneSize = 2.5f; 
             Vector3 newPosition = transform.position;
 
             newPosition.x = Mathf.Clamp(newPosition.x, -halfPlaneSize, halfPlaneSize);
@@ -288,12 +284,12 @@ public class Player : NetworkBehaviour
                     return;
                 }
 
-                if (availableColors.Count <= 5)  // Assuming 5 is the maximum number of players/colors
+                if (availableColors.Count <= 5)  
                 {
                     availableColors.Add(NetworkedColor.Value);
                 }
 
-                NetworkedColor.Value = Color.gray;  // Reset color to default when despawning
+                NetworkedColor.Value = Color.gray; 
             }
         } 
         catch (System.Exception e) 

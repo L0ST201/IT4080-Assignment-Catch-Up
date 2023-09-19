@@ -46,7 +46,6 @@ public class LobbyManager : NetworkBehaviour
         if (NetworkManager.Singleton.IsServer)
         {
             Debug.Log("This instance recognizes itself as a server");
-            // Directly calling the logic instead of the RPC
             StartGame();
             StartGameClientRpc();
         }
