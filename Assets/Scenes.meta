@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 142d7171f0dd14e8fadd24ce8cb51d53
+=======
+guid: fd070b085ffe2472e8a6c8c1ded1d7a9
+>>>>>>> branch-old-repo
 folderAsset: yes
 DefaultImporter:
   externalObjects: {}
