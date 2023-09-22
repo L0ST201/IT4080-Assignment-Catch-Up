@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.18028349, g: 0.22571358, b: 0.3069225, a: 1}
+  m_IndirectSpecularColor: {r: 0.44657868, g: 0.4964124, b: 0.574817, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -306,6 +306,7 @@ MonoBehaviour:
   clientButton: {fileID: 484985163}
   serverButton: {fileID: 2147349849}
   shutdownButton: {fileID: 1476505513}
+  statusText: {fileID: 0}
   networkHandler: {fileID: 504755219}
   lobbyManager: {fileID: 1745851862}
 --- !u!1 &484985161
@@ -2198,7 +2199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startButton: {fileID: 1120855603}
-  statusLabel: {fileID: 1286177738}
+  statusLabel: {fileID: 683640727}
 --- !u!114 &1745851863
 MonoBehaviour:
   m_ObjectHideFlags: 0

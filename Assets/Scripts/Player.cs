@@ -10,22 +10,11 @@ public class Player : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float gravity = 9.81f;
-    [SerializeField] private Vector2 spawnAreaSize = new Vector2(5, 5);
 
     private Camera playerCamera;
     private Vector3 moveDirection = Vector3.zero;
     private CharacterController characterController;
     private float verticalLookRotation = 0f;
-
-    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
-        NetworkVariableReadPermission.Everyone, 
-        NetworkVariableWritePermission.Server);
-
-    public NetworkVariable<Color> NetworkedColor
-    {
-        get { return networkedColor; }
-        set { networkedColor = value; }
-    }
 
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
@@ -44,18 +33,16 @@ public class Player : NetworkBehaviour
         Color.magenta
     };
 
-    private Vector3 boundaryCenter = new Vector3(0, 2.5f, 0);
+    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
+        NetworkVariableReadPermission.Everyone, 
+        NetworkVariableWritePermission.Server);
 
-    private static NetworkVariable<int> positionIndex = new NetworkVariable<int>(0);
-    private Vector3[] startPositions = new Vector3[]
+    public NetworkVariable<Color> NetworkedColorProperty
     {
-        new Vector3(4, 2, 0),
-        new Vector3(-4, 2, 0),
-        new Vector3(0, 2, 4),
-        new Vector3(0, 2, -4)
-    };
+        get { return networkedColor; }
+        set { networkedColor = value; }
+    }
 
-    private Vector3 spawnPosition;
     public ParticleSystem hostParticleEffectPrefab;
 
     private void Awake()
@@ -66,20 +53,7 @@ public class Player : NetworkBehaviour
     private void Start()
     {
         characterController = GetComponent<CharacterController>();
-        if (!characterController)
-        {
-            Debug.LogError("CharacterController not found on player.");
-            return;
-        }
-
         playerCamera = transform.Find("Camera").GetComponent<Camera>();
-        if (!playerCamera)
-        {
-            Debug.LogError("Player camera not found.");
-            return;
-        }
-
-        playerCamera.enabled = networkObject.IsOwner;
 
         headRenderer = transform.Find("SK_Soldier_Head").GetComponent<Renderer>();
         legsRenderer = transform.Find("SK_Soldier_Legs").GetComponent<Renderer>();
@@ -107,27 +81,6 @@ public class Player : NetworkBehaviour
         networkedColor.OnValueChanged += OnColorChanged;
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
-
-        AssignSpawnPoint();
-    }
-
-    private void AssignSpawnPoint()
-    {
-        if (IsServer)
-        {
-            spawnPosition = GenerateSpawnPosition();
-            transform.position = spawnPosition;
-        }
-    }
-
-    private Vector3 GenerateSpawnPosition()
-    {
-        if (positionIndex.Value >= startPositions.Length)
-        {
-            positionIndex.Value = 0;
-        }
-        
-        return startPositions[positionIndex.Value++];
     }
 
     private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
@@ -149,7 +102,6 @@ public class Player : NetworkBehaviour
 
     private void OnColorChanged(Color oldValue, Color newValue)
     {
-        Debug.Log($"Color changed from {oldValue} to {newValue}");
         SetPlayerColor(newValue);
     }
 
@@ -164,9 +116,8 @@ public class Player : NetworkBehaviour
 
     private bool IsPlayerGrounded()
     {
-        float extraHeightText = 0.1f;
-        bool grounded = Physics.Raycast(characterController.bounds.center, Vector3.down, characterController.bounds.extents.y + extraHeightText);
-        return grounded;
+        float extraHeightTest = 0.1f;
+        return Physics.Raycast(characterController.bounds.center, Vector3.down, characterController.bounds.extents.y + extraHeightTest);
     }
 
     private void OwnerHandleInput()
@@ -209,20 +160,7 @@ public class Player : NetworkBehaviour
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement)
     {
-    
         characterController.Move(movement);
-
-        if (!networkObject.IsOwner) 
-        {
-            float halfPlaneSize = 2.5f; 
-            Vector3 newPosition = transform.position;
-
-            newPosition.x = Mathf.Clamp(newPosition.x, -halfPlaneSize, halfPlaneSize);
-            newPosition.z = Mathf.Clamp(newPosition.z, -halfPlaneSize, halfPlaneSize);
-
-            transform.position = newPosition;
-        }
-
         if (transform.position != networkedPosition.Value)
         {
             networkedPosition.Value = transform.position;
@@ -246,55 +184,26 @@ public class Player : NetworkBehaviour
         {
             Color assignedColor = availableColors[0];
             availableColors.RemoveAt(0);
-            NetworkedColor.Value = assignedColor;
+            networkedColor.Value = assignedColor;
         }
         else
         {
-            NetworkedColor.Value = Color.gray;
+            networkedColor.Value = Color.gray;
         }
     }
 
-    public override void OnNetworkDespawn()
+     public override void OnNetworkDespawn()
     {
-        try 
+        if (IsServer)
         {
-            if (IsServer)
+            if (networkObject == null || !networkObject.IsSpawned || networkedColor == null || availableColors == null)
+                return;
+
+            if (availableColors.Count <= 5)  
             {
-                if (networkObject == null)
-                {
-                    Debug.LogError("OnNetworkDespawn: networkObject is null");
-                    return;
-                }
-
-                if (!networkObject.IsSpawned)
-                {
-                    Debug.LogError("OnNetworkDespawn: networkObject is not spawned");
-                    return;
-                }
-
-                if (NetworkedColor == null)
-                {
-                    Debug.LogError("OnNetworkDespawn: NetworkedColor is null");
-                    return;
-                }
-
-                if (availableColors == null)
-                {
-                    Debug.LogError("OnNetworkDespawn: availableColors is null");
-                    return;
-                }
-
-                if (availableColors.Count <= 5)  
-                {
-                    availableColors.Add(NetworkedColor.Value);
-                }
-
-                NetworkedColor.Value = Color.gray; 
+                availableColors.Add(networkedColor.Value);
             }
-        } 
-        catch (System.Exception e) 
-        {
-            Debug.LogError("Error in OnNetworkDespawn: " + e.Message);
+            networkedColor.Value = Color.gray; 
         }
     }
 }

@@ -1,20 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-
+    // Start is called before the first frame update
     void Start()
     {
-        if(Application.isEditor) 
-        {
-            // Placeholder for furue logic
-        }
-        else
-        {
-            Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
-        }
+        
     }
 }

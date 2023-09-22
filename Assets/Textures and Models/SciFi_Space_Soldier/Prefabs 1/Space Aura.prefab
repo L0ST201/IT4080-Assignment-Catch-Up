@@ -475,7 +475,7 @@ GameObject:
   - component: {fileID: -1462783791461066415}
   - component: {fileID: -802078452036733107}
   m_Layer: 0
-  m_Name: Space Dark
+  m_Name: Space Aura
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

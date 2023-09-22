@@ -1,23 +1,24 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Netcode;
 using UnityEngine;
+using Unity.Netcode;
 using UnityEngine.UI;
-using TMPro; 
-using UnityEngine.Networking;
+using TMPro;
 
 public class LobbyManager : NetworkBehaviour
 {
+    [Header("UI Elements")]
     public Button startButton;
-    public TMPro.TMP_Text statusLabel;
+    public TMP_Text statusLabel;
 
-    void Start()
+    private void Start()
     {
         InitializeLobby();
         
+        // Add event listeners
         startButton.onClick.AddListener(OnStartButtonClicked);
-        NetworkManager.Singleton.OnClientStarted += OnClientStarted;
-        NetworkManager.Singleton.OnServerStarted += OnServerStarted;
+        NetworkManager.OnClientStarted += OnClientStarted;
+        NetworkManager.OnServerStarted += OnServerStarted;
     }
 
     private void InitializeLobby()
@@ -68,7 +69,6 @@ public class LobbyManager : NetworkBehaviour
         StartGameClientRpc();
     }
 
-
     [ClientRpc]
     public void StartGameClientRpc()
     {
@@ -86,5 +86,12 @@ public class LobbyManager : NetworkBehaviour
     {
         startButton.gameObject.SetActive(false);
         statusLabel.text = "Start something, like the server or the host or the client.";
+    }
+
+    private new void OnDestroy() 
+    {
+        startButton.onClick.RemoveListener(OnStartButtonClicked);
+        NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
+        NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
     }
 }

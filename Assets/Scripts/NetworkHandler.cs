@@ -1,6 +1,5 @@
+using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using Unity.Netcode;
 using TMPro;
@@ -22,13 +21,8 @@ public class NetworkHandler : NetworkBehaviour
 
     private NetworkStatus currentStatus = NetworkStatus.ManualTest;
 
-    private void Start()
+    void Start()
     {
-        if (statusText != null)
-        {
-            statusText.text = "Status: Manual Test";
-        }
-
         NetworkManager.Singleton.OnClientStarted += OnClientStarted;
         NetworkManager.Singleton.OnServerStarted += OnServerStarted;
     }
@@ -66,32 +60,9 @@ public class NetworkHandler : NetworkBehaviour
         statusText.text = "Status: " + status;
     }
 
-    public void ResetStatus()
+    private void ResetStatus()
     {
         currentStatus = NetworkStatus.NothingYet;
-    }
-
-    public void ShutdownServer()
-    {
-        currentStatus = NetworkStatus.Disconnected;
-        NetworkManager.Singleton.Shutdown();
-    }
-
-    private void OnClientShutdown(bool indicator)
-    {
-        if (IsClient && !IsHost)
-        {
-            currentStatus = NetworkStatus.Disconnected;
-        }
-        UnsubscribeClientEvents();
-    }
-
-    private void OnHostEndedGame()
-    {
-        if (IsServer && !IsHost)
-        {
-            currentStatus = NetworkStatus.Disconnected;
-        }
     }
 
     private void OnClientStarted()
@@ -103,23 +74,43 @@ public class NetworkHandler : NetworkBehaviour
         SubscribeClientEvents();
     }
 
+    private void OnServerStarted()
+    {
+        currentStatus = IsHost ? NetworkStatus.Host : NetworkStatus.Server;
+        SubscribeServerEvents();
+    }
+
     private void SubscribeClientEvents()
     {
-        NetworkManager.OnClientConnectedCallback += ClientOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback += ClientOnClientDisconnected;
-        NetworkManager.OnServerStopped += ClientOnClientStopped;
+        NetworkManager.Singleton.OnClientConnectedCallback += ClientOnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += ClientOnClientDisconnected;
+        NetworkManager.Singleton.OnClientStopped += ClientOnClientStopped;
     }
 
     private void UnsubscribeClientEvents()
     {
-        NetworkManager.OnClientConnectedCallback -= ClientOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback -= ClientOnClientDisconnected;
-        NetworkManager.OnServerStopped -= ClientOnClientStopped;
+        NetworkManager.Singleton.OnClientConnectedCallback -= ClientOnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= ClientOnClientDisconnected;
+        NetworkManager.Singleton.OnClientStopped -= ClientOnClientStopped;
+    }
+
+    private void SubscribeServerEvents()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback += ServerOnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += ServerOnClientDisconnected;
+        NetworkManager.Singleton.OnServerStopped += ServerOnServerStopped;
+    }
+
+    private void UnsubscribeServerEvents()
+    {
+        NetworkManager.Singleton.OnClientConnectedCallback -= ServerOnClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= ServerOnClientDisconnected;
+        NetworkManager.Singleton.OnServerStopped -= ServerOnServerStopped;
     }
 
     private void ClientOnClientConnected(ulong clientId)
     {
-        // Placeholder for furue logic
+        // Placeholder for future logic
     }
 
     private void ClientOnClientDisconnected(ulong clientId)
@@ -130,86 +121,8 @@ public class NetworkHandler : NetworkBehaviour
         }
     }
 
-    private void OnServerStarted()
-    {
-        if (IsHost)
-        {
-            currentStatus = NetworkStatus.Host;
-        }
-        else
-        {
-            currentStatus = NetworkStatus.Server;
-        }
-        SubscribeServerEvents();
-    }
-
-    private void SubscribeServerEvents()
-    {
-        NetworkManager.OnClientConnectedCallback += ServerOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback += ServerOnClientDisconnected;
-        NetworkManager.OnServerStopped += ServerOnServerStopped;
-    }
-
-    private void UnsubscribeServerEvents()
-    {
-        NetworkManager.OnClientConnectedCallback -= ServerOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback -= ServerOnClientDisconnected;
-        NetworkManager.OnServerStopped -= ServerOnServerStopped;
-    }
-
-    private void ServerOnClientConnected(ulong clientId)
-    {
-        // Placeholder for furue logic
-    }
-
-    private void ServerOnClientDisconnected(ulong clientId)
-    {
-        // Placeholder for furue logic
-    }
-
-    private void ServerOnServerStopped(bool indicator)
-    {
-        UnsubscribeServerEvents();
-    }
-
-    private void OnHostStarted()
-    {
-        currentStatus = NetworkStatus.Host;
-        SubscribeHostEvents();
-    }
-
-    private void SubscribeHostEvents()
-    {
-        NetworkManager.OnClientConnectedCallback += HostOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback += HostOnClientDisconnected;
-        NetworkManager.OnServerStopped += HostOnHostStopped;
-    }
-
-    private void UnsubscribeHostEvents()
-    {
-        NetworkManager.OnClientConnectedCallback -= HostOnClientConnected;
-        NetworkManager.OnClientDisconnectCallback -= HostOnClientDisconnected;
-        NetworkManager.OnServerStopped -= HostOnHostStopped;
-    }
-
-    private void HostOnClientConnected(ulong clientId)
-    {
-        // Placeholder for furue logic
-    }
-
-    private void HostOnClientDisconnected(ulong clientId)
-    {
-        // Placeholder for furue logic
-    }
-
-    private void HostOnHostStopped(bool indicator)
-    {
-        UnsubscribeHostEvents();
-    }
-
     private void ClientOnClientStopped(bool indicator)
     {
-        Debug.Log("Client stopped method triggered");
         if (IsClient)
         {
             currentStatus = NetworkStatus.Disconnected;
@@ -217,4 +130,24 @@ public class NetworkHandler : NetworkBehaviour
         UnsubscribeClientEvents();
     }
 
+    private void ServerOnClientConnected(ulong clientId)
+    {
+        // Placeholder for future logic
+    }
+
+    private void ServerOnClientDisconnected(ulong clientId)
+    {
+        // Placeholder for future logic
+    }
+
+    private void ServerOnServerStopped(bool indicator)
+    {
+        UnsubscribeServerEvents();
+    }
+
+    public void ShutdownServer()
+    {
+        currentStatus = NetworkStatus.Disconnected;
+        NetworkManager.Singleton.Shutdown();
+    }
 }
