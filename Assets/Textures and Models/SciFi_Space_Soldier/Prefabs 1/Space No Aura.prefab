@@ -469,8 +469,9 @@ GameObject:
   m_Component:
   - component: {fileID: 427246}
   - component: {fileID: 9530324}
-  - component: {fileID: 6768694831885575892}
   - component: {fileID: 5197150790610477030}
+  - component: {fileID: -5837727509879712024}
+  - component: {fileID: 6768694831885575892}
   - component: {fileID: 5529301544039423116}
   - component: {fileID: -1462783791461066415}
   - component: {fileID: -802078452036733107}
@@ -522,6 +523,35 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5197150790610477030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 193908}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 557d8ed0bdfc8442287b742a255e7225, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movementSpeed: 7
+  slowWalkMultiplier: 0.5
+  mouseSensitivity: 3
+  jumpForce: 10
+  gravity: 25
+--- !u!114 &-5837727509879712024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 193908}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c2fd1683e90b47688a56b93756a2b33, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &6768694831885575892
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -542,24 +572,6 @@ MonoBehaviour:
   SpawnWithObservers: 1
   DontDestroyWithOwner: 0
   AutoObjectParentSync: 1
---- !u!114 &5197150790610477030
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 193908}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 557d8ed0bdfc8442287b742a255e7225, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  movementSpeed: 7
-  slowWalkMultiplier: 0.5
-  mouseSensitivity: 3
-  jumpForce: 10
-  gravity: 25
-  hostParticleEffectPrefab: {fileID: 6725368675793755674, guid: 7855b5cf5fd794e4eae2e836cd01a63e, type: 3}
 --- !u!114 &5529301544039423116
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -588,7 +600,7 @@ MonoBehaviour:
   UseQuaternionCompression: 0
   UseHalfFloatPrecision: 0
   InLocalSpace: 0
-  Interpolate: 1
+  Interpolate: 0
   SlerpPosition: 0
 --- !u!143 &-1462783791461066415
 CharacterController:

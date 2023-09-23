@@ -1,7 +1,7 @@
-using UnityEngine;
-using Unity.Netcode;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using Unity.Netcode;
 
 public class Player : NetworkBehaviour
 {
@@ -19,90 +19,25 @@ public class Player : NetworkBehaviour
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
 
-    private Renderer headRenderer;
-    private Renderer legsRenderer;
-    private Renderer torsoRenderer;
-    private NetworkObject networkObject;
-
-    private static List<Color> availableColors = new List<Color>
-    {
-        Color.black,
-        Color.blue,
-        Color.green,
-        Color.yellow,
-        Color.magenta
-    };
-
-    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
-        NetworkVariableReadPermission.Everyone, 
-        NetworkVariableWritePermission.Server);
-
-    public NetworkVariable<Color> NetworkedColorProperty
-    {
-        get { return networkedColor; }
-        set { networkedColor = value; }
-    }
-
-    public ParticleSystem hostParticleEffectPrefab;
-
     private void Awake()
     {
-        networkObject = GetComponent<NetworkObject>();
+        playerCamera = transform.Find("Camera").GetComponent<Camera>();
+        characterController = GetComponent<CharacterController>();
+
+        if (!playerCamera) Debug.LogError("Player camera not found.");
+        if (!characterController) Debug.LogError("CharacterController not found on player.");
     }
 
     private void Start()
     {
-        characterController = GetComponent<CharacterController>();
-        playerCamera = transform.Find("Camera").GetComponent<Camera>();
-
-        headRenderer = transform.Find("SK_Soldier_Head").GetComponent<Renderer>();
-        legsRenderer = transform.Find("SK_Soldier_Legs").GetComponent<Renderer>();
-        torsoRenderer = transform.Find("SK_Soldier_Torso").GetComponent<Renderer>();
-
-        if (networkObject.IsOwner)
+        playerCamera.enabled = IsOwner;
+        if (playerCamera.TryGetComponent(out AudioListener audioListener))
         {
-            RequestColorServerRpc();
-            if (NetworkManager.Singleton && hostParticleEffectPrefab) 
-            {
-                var effectInstance = NetworkObject.Instantiate(hostParticleEffectPrefab);
-                effectInstance.transform.SetParent(transform);
-                effectInstance.transform.position = transform.position;
-                var particleSystem = effectInstance.GetComponent<ParticleSystem>();
-                if (particleSystem)
-                {
-                    particleSystem.Play();
-                }
-            }
+            audioListener.enabled = IsOwner;
         }
-    }
 
-    public override void OnNetworkSpawn()
-    {
-        networkedColor.OnValueChanged += OnColorChanged;
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
-    }
-
-    private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
-    {
-        transform.position = newValue;
-    }
-
-    private void OnRotationChanged(Quaternion oldValue, Quaternion newValue)
-    {
-        transform.rotation = newValue;
-    }
-
-    private void SetPlayerColor(Color color)
-    {
-        if (headRenderer != null) headRenderer.material.color = color;
-        if (legsRenderer != null) legsRenderer.material.color = color;
-        if (torsoRenderer != null) torsoRenderer.material.color = color;
-    }
-
-    private void OnColorChanged(Color oldValue, Color newValue)
-    {
-        SetPlayerColor(newValue);
     }
 
     private void Update()
@@ -153,14 +88,26 @@ public class Player : NetworkBehaviour
 
         playerCamera.transform.localRotation = Quaternion.Euler(verticalLookRotation, 0f, 0f);
 
-        transform.Rotate(Vector3.up * mouseX);
-        RotateServerRpc(Vector3.up * mouseX);
+        Vector3 rotation = Vector3.up * mouseX;
+        transform.Rotate(rotation);
+        RotateServerRpc(rotation);
+    }
+
+    private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
+    {
+        transform.position = newValue;
+    }
+
+    private void OnRotationChanged(Quaternion oldValue, Quaternion newValue)
+    {
+        transform.rotation = newValue;
     }
 
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement)
     {
         characterController.Move(movement);
+
         if (transform.position != networkedPosition.Value)
         {
             networkedPosition.Value = transform.position;
@@ -174,36 +121,6 @@ public class Player : NetworkBehaviour
         {
             transform.Rotate(rotation);
             networkedRotation.Value = transform.rotation;
-        }
-    }
-
-    [ServerRpc]
-    private void RequestColorServerRpc()
-    {
-        if (availableColors.Count > 0)
-        {
-            Color assignedColor = availableColors[0];
-            availableColors.RemoveAt(0);
-            networkedColor.Value = assignedColor;
-        }
-        else
-        {
-            networkedColor.Value = Color.gray;
-        }
-    }
-
-     public override void OnNetworkDespawn()
-    {
-        if (IsServer)
-        {
-            if (networkObject == null || !networkObject.IsSpawned || networkedColor == null || availableColors == null)
-                return;
-
-            if (availableColors.Count <= 5)  
-            {
-                availableColors.Add(networkedColor.Value);
-            }
-            networkedColor.Value = Color.gray; 
         }
     }
 }

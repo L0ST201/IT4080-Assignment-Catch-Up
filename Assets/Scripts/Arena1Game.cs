@@ -19,15 +19,6 @@ public class Arena1Game : NetworkBehaviour
         new Vector3(0, 2, -4)
     };
 
-    private int _colorIndex = 0;
-    private static readonly Color[] _playerColors = 
-    {
-        Color.blue,
-        Color.green,
-        Color.yellow,
-        Color.magenta,
-    };
-
     void Start()
     {
         SetCameraAndListenerState();
@@ -40,11 +31,11 @@ public class Arena1Game : NetworkBehaviour
         {
             Debug.Log("Not a server. Players not spawned.");
         }
-
     }
 
     private void SetCameraAndListenerState()
     {
+        // Disable arena camera and audio listener for clients to ensure they only use their player's camera and listener.
         _arenaCamera.enabled = !IsClient;
         _arenaCamera.GetComponent<AudioListener>().enabled = !IsClient;
     }
@@ -56,13 +47,6 @@ public class Arena1Game : NetworkBehaviour
         return pos;
     }
 
-    private Color NextColor() 
-    {
-        Color newColor = _playerColors[_colorIndex];
-        _colorIndex = (_colorIndex + 1) % _playerColors.Length;
-        return newColor;
-    }
-
     private void SpawnPlayers()
     {
         if (!NetworkManager.Singleton.IsServer)
@@ -71,39 +55,28 @@ public class Arena1Game : NetworkBehaviour
             return;
         }
 
+        if (!_playerPrefab || !_playerWithAuraPrefab)
+        {
+            Debug.LogError("Player prefabs are not assigned.");
+            return;
+        }
+
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
+            Vector3 spawnPosition = NextPosition();
+            
             Player playerSpawn;
             if (clientId == NetworkManager.ServerClientId)
             {
-                playerSpawn = Instantiate(_playerWithAuraPrefab, NextPosition(), Quaternion.identity);
+                playerSpawn = Instantiate(_playerWithAuraPrefab, spawnPosition, Quaternion.identity);
             }
             else
             {
-                playerSpawn = Instantiate(_playerPrefab, NextPosition(), Quaternion.identity);
+                playerSpawn = Instantiate(_playerPrefab, spawnPosition, Quaternion.identity);
             }
 
             NetworkObject networkObject = playerSpawn.GetComponent<NetworkObject>();
             networkObject.SpawnWithOwnership(clientId);
-            
-            playerSpawn.NetworkedColorProperty.Value = NextColor();
         }
-    }
-
-    [ClientRpc]
-    private void SpawnPlayerClientRpc(ulong clientId, Vector3 spawnPosition, Color playerColor)
-    {
-        Player playerSpawn;
-        if (clientId == NetworkManager.ServerClientId)
-        {
-            playerSpawn = Instantiate(_playerWithAuraPrefab, spawnPosition, Quaternion.identity);
-        }
-        else
-        {
-            playerSpawn = Instantiate(_playerPrefab, spawnPosition, Quaternion.identity);
-        }
-        
-        playerSpawn.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-        playerSpawn.NetworkedColorProperty.Value = playerColor;
     }
 }
