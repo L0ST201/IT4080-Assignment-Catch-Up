@@ -34,7 +34,6 @@ public class ChatUi : MonoBehaviour {
         lbl.style.unityTextAlign = TextAnchor.MiddleCenter;
     }
 
-    
     // ----------------------
     // Private
     // ----------------------
@@ -49,8 +48,6 @@ public class ChatUi : MonoBehaviour {
 
         txtMessage.value = "";
     }
-
-
 
     // ----------------------
     // Events
@@ -70,7 +67,6 @@ public class ChatUi : MonoBehaviour {
     private void TxtMessageChanged(ChangeEvent<string> changeEvent) {
         btnSend.SetEnabled(changeEvent.newValue != string.Empty);
     }
-
 
     // ----------------------
     // Public

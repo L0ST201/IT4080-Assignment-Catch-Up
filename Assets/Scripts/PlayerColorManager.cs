@@ -23,6 +23,10 @@ public class PlayerColorManager : NetworkBehaviour
     private bool isApplicationQuitting = false;
     private bool hasDespawned = false;
 
+    private bool IsHostPlayer()
+    {
+        return NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId;
+    }
 
     private void Start()
     {
@@ -36,6 +40,11 @@ public class PlayerColorManager : NetworkBehaviour
         }
 
         networkedColor.OnValueChanged += OnColorChanged;
+
+        if (IsOwner && !IsHostPlayer())
+        {
+            GetComponent<PlayerColorManager>().RequestColorServerRpc();
+        }
     }
 
     private void OnColorChanged(Color oldValue, Color newValue)
@@ -43,7 +52,7 @@ public class PlayerColorManager : NetworkBehaviour
         SetPlayerColor(newValue);
     }
 
-    private void SetPlayerColor(Color color)
+    public void SetPlayerColor(Color color)
     {
         if (headRenderer != null) headRenderer.material.color = color;
         if (legsRenderer != null) legsRenderer.material.color = color;
@@ -53,17 +62,25 @@ public class PlayerColorManager : NetworkBehaviour
     [ServerRpc]
     public void RequestColorServerRpc()
     {
+        if (OwnerClientId == NetworkManager.ServerClientId)
+        {
+            networkedColor.Value = Color.white;
+            return;
+        }
+
         if (availableColors.Count > 0)
         {
             Color assignedColor = availableColors[0];
             availableColors.RemoveAt(0);
             networkedColor.Value = assignedColor;
+            Debug.Log($"Assigned color {assignedColor} to client {OwnerClientId}");
         }
         else
         {
             networkedColor.Value = Color.gray;
         }
     }
+
 
     void OnApplicationQuit()
     {

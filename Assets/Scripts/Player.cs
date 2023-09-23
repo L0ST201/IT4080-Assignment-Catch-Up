@@ -38,11 +38,6 @@ public class Player : NetworkBehaviour
 
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
-
-        if (IsOwner)
-        {
-            GetComponent<PlayerColorManager>().RequestColorServerRpc();
-        }
     }
 
     private void Update()

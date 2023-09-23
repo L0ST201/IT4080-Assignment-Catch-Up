@@ -35,7 +35,6 @@ public class Arena1Game : NetworkBehaviour
 
     private void SetCameraAndListenerState()
     {
-        // Disable arena camera and audio listener for clients to ensure they only use their player's camera and listener.
         _arenaCamera.enabled = !IsClient;
         _arenaCamera.GetComponent<AudioListener>().enabled = !IsClient;
     }

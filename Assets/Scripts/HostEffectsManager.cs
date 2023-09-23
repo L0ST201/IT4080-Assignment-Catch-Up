@@ -12,20 +12,17 @@ public class HostEffectsManager : NetworkBehaviour
 
     private void Start()
     {
-        // If this is the host
         if (IsHostPlayer())
         {
-            // Instantiate the aura as a networked GameObject
             var effectInstance = Instantiate(hostParticleEffectPrefab, transform.position, Quaternion.identity);
 
-            // Get the NetworkObject component
             var networkObject = effectInstance.GetComponent<NetworkObject>();
             if (networkObject)
             {
-                networkObject.Spawn(); // Spawn it first
+                networkObject.Spawn();
             }
 
-            effectInstance.transform.SetParent(transform, true); // Then set the parent
+            effectInstance.transform.SetParent(transform, true);
             instantiatedEffect = effectInstance.GetComponent<ParticleSystem>();
             instantiatedEffect.Play();
         }
