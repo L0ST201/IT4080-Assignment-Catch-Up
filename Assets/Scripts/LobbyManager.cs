@@ -15,7 +15,6 @@ public class LobbyManager : NetworkBehaviour
     {
         InitializeLobby();
         
-        // Add event listeners
         startButton.onClick.AddListener(OnStartButtonClicked);
         NetworkManager.OnClientStarted += OnClientStarted;
         NetworkManager.OnServerStarted += OnServerStarted;
@@ -47,8 +46,7 @@ public class LobbyManager : NetworkBehaviour
         if (NetworkManager.Singleton.IsServer)
         {
             Debug.Log("This instance recognizes itself as a server");
-            StartGame();
-            StartGameClientRpc();
+            StartGameServerRpc();
         }
         else
         {
@@ -59,11 +57,6 @@ public class LobbyManager : NetworkBehaviour
     [ServerRpc]
     public void StartGameServerRpc()
     {
-        if (!NetworkManager.Singleton.IsServer)
-        {
-            Debug.LogError("StartGameServerRpc was called, but this instance is not a server.");
-            return;
-        }
         Debug.Log("Inside StartGameServerRpc on server");
         StartGame();
         StartGameClientRpc();
@@ -73,15 +66,17 @@ public class LobbyManager : NetworkBehaviour
     public void StartGameClientRpc()
     {
         Debug.Log("Inside StartGameClientRpc on client");
-        StartGame();
+        // Will put client-specific logic here.
     }
 
-    public void StartGame() 
+    public void StartGame()
     {
         Debug.Log("Attempting to load ArenaOne scene");
-        NetworkManager.SceneManager.LoadScene("TestChat", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        if (NetworkManager.Singleton.IsServer)
+        {
+            NetworkManager.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        }
     }
-
     public void OnQuitGameButtonClicked()
     {
         startButton.gameObject.SetActive(false);

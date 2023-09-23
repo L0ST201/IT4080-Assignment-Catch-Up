@@ -6,31 +6,48 @@ using Unity.Netcode;
 public class ChatServer : NetworkBehaviour
 {
     public ChatUi chatUi;
-    const ulong SYSTEM_ID = ulong.MaxValue;
+    private const ulong SYSTEM_ID = ulong.MaxValue;
     private ulong[] dmClientIds = new ulong[2];
+    private const string WHISPER_PREFIX = "<whisper>";
 
     void Start()
+    {
+        InitializeChatServer();
+    }
+
+    private void InitializeChatServer()
     {
         chatUi.printEnteredText = false;
         chatUi.MessageEntered += OnChatUiMessageEntered;
 
         if (IsServer)
         {
-            NetworkManager.OnClientConnectedCallback += ServerOnClientConnected;
-            NetworkManager.OnClientDisconnectCallback += ServerOnClientDisconnect; 
-            if (IsHost)
-            {
-                DisplayMessageLocally(SYSTEM_ID, $"You are the host AND client {NetworkManager.LocalClientId}");
-            }
-            else
-            {
-                DisplayMessageLocally(SYSTEM_ID, "You are the server");
-            }
+            RegisterServerEventHandlers();
+            DisplayServerOrHostMessage();
         }
         else
         {
-            DisplayMessageLocally(SYSTEM_ID, $"You are the client {NetworkManager.LocalClientId}");
+            DisplayClientMessage();
         }
+    }
+
+    private void RegisterServerEventHandlers()
+    {
+        NetworkManager.OnClientConnectedCallback += ServerOnClientConnected;
+        NetworkManager.OnClientDisconnectCallback += ServerOnClientDisconnect;
+    }
+
+    private void DisplayServerOrHostMessage()
+    {
+        string message = IsHost 
+            ? $"You are the host AND client {NetworkManager.LocalClientId}" 
+            : "You are the server";
+        DisplayMessageLocally(SYSTEM_ID, message);
+    }
+
+    private void DisplayClientMessage()
+    {
+        DisplayMessageLocally(SYSTEM_ID, $"You are the client {NetworkManager.LocalClientId}");
     }
 
     private void ServerOnClientConnected(ulong clientId)
@@ -44,7 +61,6 @@ public class ChatServer : NetworkBehaviour
 
     private void ServerOnClientDisconnect(ulong clientId)
     {
-
         SendGlobalMessage($"Player {clientId} has disconnected from the server.");
     }
 
@@ -75,28 +91,33 @@ public class ChatServer : NetworkBehaviour
     {
         if (message.StartsWith("@"))
         {
-            string[] parts = message.Split(" ");
-            string clientIdStr = parts[0].Replace("@", "");
-            if (ulong.TryParse(clientIdStr, out ulong toClientId))
-            {
-                if (NetworkManager.Singleton.ConnectedClients.ContainsKey(toClientId))
-                {
-                    string whisperMessage = string.Join(" ", parts, 1, parts.Length - 1); 
-                    ServerSendDirectMessage(whisperMessage, serverRpcParams.Receive.SenderClientId, toClientId);
-                }
-                else
-                {
-                SendChatNotificationServerRpc($"The message could not be sent. Player {toClientId} is not connected.", serverRpcParams.Receive.SenderClientId);
-                }
-            }
-            else
-            {
-                SendChatNotificationServerRpc($"Invalid client ID: {clientIdStr}", serverRpcParams.Receive.SenderClientId);
-            }
+            HandleDirectMessage(message, serverRpcParams.Receive.SenderClientId);
         }
         else
         {
             ReceiveChatMessageClientRpc(message, serverRpcParams.Receive.SenderClientId);
+        }
+    }
+
+    private void HandleDirectMessage(string message, ulong senderClientId)
+    {
+        string[] parts = message.Split(" ");
+        string clientIdStr = parts[0].Replace("@", "");
+        if (ulong.TryParse(clientIdStr, out ulong toClientId))
+        {
+            if (NetworkManager.Singleton.ConnectedClients.ContainsKey(toClientId))
+            {
+                string whisperMessage = string.Join(" ", parts, 1, parts.Length - 1);
+                ServerSendDirectMessage(whisperMessage, senderClientId, toClientId);
+            }
+            else
+            {
+                SendChatNotificationServerRpc($"The message could not be sent. Player {toClientId} is not connected.", senderClientId);
+            }
+        }
+        else
+        {
+            SendChatNotificationServerRpc($"Invalid client ID: {clientIdStr}", senderClientId);
         }
     }
 
@@ -120,6 +141,7 @@ public class ChatServer : NetworkBehaviour
             DisplayMessageLocally(fromClientId, message);
         }
     }
+
     private void ServerSendDirectMessage(string message, ulong from, ulong to)
     {
         dmClientIds[0] = from;
@@ -127,7 +149,7 @@ public class ChatServer : NetworkBehaviour
         ClientRpcParams rpcParams = default;
         rpcParams.Send.TargetClientIds = dmClientIds;
 
-        ReceiveChatMessageClientRpc($"<whisper> {message}", from, rpcParams);
+        ReceiveChatMessageClientRpc($"{WHISPER_PREFIX} {message}", from, rpcParams);
     }
 
     private void SendGlobalMessage(string message)
@@ -135,6 +157,16 @@ public class ChatServer : NetworkBehaviour
         foreach (var client in NetworkManager.Singleton.ConnectedClients)
         {
             ReceiveChatMessageClientRpc(message, SYSTEM_ID, new ClientRpcParams { Send = { TargetClientIds = new ulong[] { client.Value.ClientId } } });
+        }
+    }
+
+    private new void OnDestroy()
+    {
+        chatUi.MessageEntered -= OnChatUiMessageEntered;
+        if (IsServer)
+        {
+            NetworkManager.OnClientConnectedCallback -= ServerOnClientConnected;
+            NetworkManager.OnClientDisconnectCallback -= ServerOnClientDisconnect;
         }
     }
 }
