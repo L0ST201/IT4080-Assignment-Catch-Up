@@ -475,7 +475,7 @@ GameObject:
   - component: {fileID: -1462783791461066415}
   - component: {fileID: -802078452036733107}
   m_Layer: 0
-  m_Name: Space No Auta
+  m_Name: Space No Aura
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -559,7 +559,6 @@ MonoBehaviour:
   mouseSensitivity: 3
   jumpForce: 10
   gravity: 25
-  spawnAreaSize: {x: 5, y: 5}
   hostParticleEffectPrefab: {fileID: 6725368675793755674, guid: 7855b5cf5fd794e4eae2e836cd01a63e, type: 3}
 --- !u!114 &5529301544039423116
 MonoBehaviour:

@@ -65,8 +65,14 @@ public class Arena1Game : NetworkBehaviour
 
     private void SpawnPlayers()
     {
+        if (!NetworkManager.Singleton.IsServer)
+        {
+            Debug.LogWarning("SpawnPlayers should only be called on the server.");
+            return;
+        }
+
         foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
-        {   
+        {
             Player playerSpawn;
             if (clientId == NetworkManager.ServerClientId)
             {
@@ -77,8 +83,27 @@ public class Arena1Game : NetworkBehaviour
                 playerSpawn = Instantiate(_playerPrefab, NextPosition(), Quaternion.identity);
             }
 
-            playerSpawn.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
-            playerSpawn.NetworkedColorProperty.Value = NextColor(); // Using the property to access NetworkedColor
+            NetworkObject networkObject = playerSpawn.GetComponent<NetworkObject>();
+            networkObject.SpawnWithOwnership(clientId);
+            
+            playerSpawn.NetworkedColorProperty.Value = NextColor();
         }
+    }
+
+    [ClientRpc]
+    private void SpawnPlayerClientRpc(ulong clientId, Vector3 spawnPosition, Color playerColor)
+    {
+        Player playerSpawn;
+        if (clientId == NetworkManager.ServerClientId)
+        {
+            playerSpawn = Instantiate(_playerWithAuraPrefab, spawnPosition, Quaternion.identity);
+        }
+        else
+        {
+            playerSpawn = Instantiate(_playerPrefab, spawnPosition, Quaternion.identity);
+        }
+        
+        playerSpawn.GetComponent<NetworkObject>().SpawnWithOwnership(clientId);
+        playerSpawn.NetworkedColorProperty.Value = playerColor;
     }
 }

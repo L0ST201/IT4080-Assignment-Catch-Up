@@ -76,10 +76,10 @@ public class LobbyManager : NetworkBehaviour
         StartGame();
     }
 
-    public void StartGame()
+    public void StartGame() 
     {
         Debug.Log("Attempting to load ArenaOne scene");
-        UnityEngine.SceneManagement.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
+        NetworkManager.SceneManager.LoadScene("TestChat", UnityEngine.SceneManagement.LoadSceneMode.Single);
     }
 
     public void OnQuitGameButtonClicked()
@@ -88,10 +88,18 @@ public class LobbyManager : NetworkBehaviour
         statusLabel.text = "Start something, like the server or the host or the client.";
     }
 
-    private new void OnDestroy() 
+   private new void OnDestroy() 
     {
-        startButton.onClick.RemoveListener(OnStartButtonClicked);
-        NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
-        NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
+        if (startButton != null)
+        {
+            startButton.onClick.RemoveListener(OnStartButtonClicked);
+        }
+
+        if (NetworkManager.Singleton != null)
+        {
+            NetworkManager.Singleton.OnClientStarted -= OnClientStarted;
+            NetworkManager.Singleton.OnServerStarted -= OnServerStarted;
+        }
     }
+
 }
