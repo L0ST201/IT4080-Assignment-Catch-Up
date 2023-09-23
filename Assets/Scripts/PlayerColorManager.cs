@@ -20,6 +20,9 @@ public class PlayerColorManager : NetworkBehaviour
     private Renderer headRenderer;
     private Renderer legsRenderer;
     private Renderer torsoRenderer;
+    private bool isApplicationQuitting = false;
+    private bool hasDespawned = false;
+
 
     private void Start()
     {
@@ -62,8 +65,19 @@ public class PlayerColorManager : NetworkBehaviour
         }
     }
 
+    void OnApplicationQuit()
+    {
+        Debug.Log("OnApplicationQuit called in PlayerColorManager");
+        isApplicationQuitting = true;
+    }
+
     public override void OnNetworkDespawn()
     {
+        if (isApplicationQuitting || hasDespawned) 
+        {
+            return;
+        }
+
         if (IsServer)
         {
             if (availableColors.Count <= 5)
@@ -72,5 +86,7 @@ public class PlayerColorManager : NetworkBehaviour
             }
             networkedColor.Value = Color.gray;
         }
+
+        hasDespawned = true;
     }
 }
