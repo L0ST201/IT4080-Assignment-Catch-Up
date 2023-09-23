@@ -13,7 +13,7 @@ public class HostEffectsManager : NetworkBehaviour
     private void Start()
     {
         // If this is the host
-        if (IsHost())
+        if (IsHostPlayer())
         {
             // Instantiate the aura as a networked GameObject
             var effectInstance = Instantiate(hostParticleEffectPrefab, transform.position, Quaternion.identity);
@@ -31,7 +31,7 @@ public class HostEffectsManager : NetworkBehaviour
         }
     }
 
-    private bool IsHost()
+    private bool IsHostPlayer()
     {
         return NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId;
     }

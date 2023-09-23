@@ -71,7 +71,7 @@ public class LobbyManager : NetworkBehaviour
 
     public void StartGame()
     {
-        Debug.Log("Attempting to load ArenaOne scene");
+        Debug.Log("Attempting to load ArenaOne/TestChat scene");
         if (NetworkManager.Singleton.IsServer)
         {
             NetworkManager.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
