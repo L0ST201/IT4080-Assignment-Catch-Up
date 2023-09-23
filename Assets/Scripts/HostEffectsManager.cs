@@ -8,21 +8,31 @@ public class HostEffectsManager : NetworkBehaviour
     [SerializeField]
     private ParticleSystem hostParticleEffectPrefab;
 
+    private ParticleSystem instantiatedEffect;
+
     private void Start()
     {
-        if (IsOwner && NetworkManager.Singleton && hostParticleEffectPrefab)
+        // If this is the host
+        if (IsHost())
         {
-            if (NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId)
+            // Instantiate the aura as a networked GameObject
+            var effectInstance = Instantiate(hostParticleEffectPrefab, transform.position, Quaternion.identity);
+
+            // Get the NetworkObject component
+            var networkObject = effectInstance.GetComponent<NetworkObject>();
+            if (networkObject)
             {
-                var effectInstance = NetworkObject.Instantiate(hostParticleEffectPrefab);
-                effectInstance.transform.SetParent(transform);
-                effectInstance.transform.position = transform.position;
-                var particleSystem = effectInstance.GetComponent<ParticleSystem>();
-                if (particleSystem)
-                {
-                    particleSystem.Play();
-                }
+                networkObject.Spawn(); // Spawn it first
             }
+
+            effectInstance.transform.SetParent(transform, true); // Then set the parent
+            instantiatedEffect = effectInstance.GetComponent<ParticleSystem>();
+            instantiatedEffect.Play();
         }
+    }
+
+    private bool IsHost()
+    {
+        return NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId;
     }
 }

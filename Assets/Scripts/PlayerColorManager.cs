@@ -13,7 +13,7 @@ public class PlayerColorManager : NetworkBehaviour
         Color.magenta
     };
 
-    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(default, 
+    private NetworkVariable<Color> networkedColor = new NetworkVariable<Color>(Color.clear, 
         NetworkVariableReadPermission.Everyone, 
         NetworkVariableWritePermission.Server);
 
