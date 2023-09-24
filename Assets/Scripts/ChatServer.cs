@@ -214,8 +214,11 @@ public class ChatServer : NetworkBehaviour
 
     private new void OnDestroy()
     {
-        chatUi.MessageEntered -= OnChatUiMessageEntered;
-        if (IsServer)
+        if (chatUi != null)
+        {
+            chatUi.MessageEntered -= OnChatUiMessageEntered;
+        }
+        if (IsServer && NetworkManager != null)
         {
             NetworkManager.OnClientConnectedCallback -= ServerOnClientConnected;
             NetworkManager.OnClientDisconnectCallback -= ServerOnClientDisconnect;
