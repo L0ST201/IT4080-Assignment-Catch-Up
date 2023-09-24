@@ -5,6 +5,9 @@ using Unity.Netcode;
 using UnityEngine.UI;
 using TMPro;
 
+// Later uncomment the startbuttons in start, initalizeLobby, OnServerStarted,
+// and also remove the OnStartButtonClicked method within OnServerStarted to
+// restore the original functionality of the start button on Lobby page.
 public class LobbyManager : NetworkBehaviour
 {
     [Header("UI Elements")]
@@ -15,14 +18,14 @@ public class LobbyManager : NetworkBehaviour
     {
         InitializeLobby();
         
-        startButton.onClick.AddListener(OnStartButtonClicked);
+        //startButton.onClick.AddListener(OnStartButtonClicked);
         NetworkManager.OnClientStarted += OnClientStarted;
         NetworkManager.OnServerStarted += OnServerStarted;
     }
 
     private void InitializeLobby()
     {
-        startButton.gameObject.SetActive(false);
+        //startButton.gameObject.SetActive(false);
         statusLabel.text = "Start something, like the server or the host or the client.";
     }
 
@@ -36,8 +39,10 @@ public class LobbyManager : NetworkBehaviour
 
     private void OnServerStarted()
     {
-        startButton.gameObject.SetActive(true);
+        //startButton.gameObject.SetActive(true);
         statusLabel.text = "You are the host, please press start game when you are ready";
+        //starts the game for user (this is temporary, will be later removed )
+        OnStartButtonClicked();
     }
 
     private void OnStartButtonClicked()

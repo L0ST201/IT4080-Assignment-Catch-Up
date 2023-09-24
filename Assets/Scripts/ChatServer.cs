@@ -85,7 +85,6 @@ public class ChatServer : NetworkBehaviour
             textColor = chatUi.defaultTextColor;
         }
 
-        // Check if an override color is provided and it's not the default clear color
         if (overrideColor != Color.clear) 
         {
             textColor = overrideColor;
@@ -120,7 +119,6 @@ public class ChatServer : NetworkBehaviour
         {
             if (toClientId == senderClientId)
             {
-                // Prevent players from whispering to themselves
                 SendChatNotificationServerRpc("You cannot whisper to yourself.", senderClientId, COLOR_ERROR);
                 return;
             }
@@ -174,19 +172,17 @@ public class ChatServer : NetworkBehaviour
     {
         if (NetworkManager.LocalClientId == to)
         {
-            // Receiving a whisper
             DisplayMessageLocally(from, message, isWhisper: true);
         }
         else if (NetworkManager.LocalClientId == from)
         {
-            // You sent a whisper
             DisplayWhisperedMessage(to, message);
         }
     }
 
     private void DisplayWhisperedMessage(ulong to, string message)
     {
-        string toStr = $"You whispered Player {to}";
+        string toStr = $"You whispered to Player {to}";
         chatUi.addEntry(toStr, message, COLOR_USER_SELF);
     }
 

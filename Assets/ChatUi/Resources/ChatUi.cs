@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -14,11 +13,13 @@ public class ChatUi : MonoBehaviour {
     public Color defaultTextColor = Color.white;
     public int fontSize = 8;
 
-
     private void OnEnable() {
         var root = GetComponent<UIDocument>().rootVisualElement;
 
         scroller = root.Q<ScrollView>();
+        scroller.style.maxHeight = 400;
+        scroller.style.flexGrow = 1;
+
         txtMessage = root.Q<TextField>();
         btnSend = root.Q<Button>();
 
@@ -29,14 +30,12 @@ public class ChatUi : MonoBehaviour {
         txtMessage.RegisterCallback<KeyDownEvent>(TxtMessageKeyDown);
         txtMessage.RegisterValueChangedCallback(TxtMessageChanged);
         txtMessage.style.fontSize = fontSize;
+        txtMessage.style.flexGrow = 1;
 
         Label lbl = addEntry("IT4080 Chat UI version 1.0.0", Color.green);
         lbl.style.unityTextAlign = TextAnchor.MiddleCenter;
     }
 
-    // ----------------------
-    // Private
-    // ----------------------
     private void EnterMessage() {
         if (printEnteredText && txtMessage.value != string.Empty) {
             addEntry(txtMessage.value);            
@@ -49,13 +48,9 @@ public class ChatUi : MonoBehaviour {
         txtMessage.value = "";
     }
 
-    // ----------------------
-    // Events
-    // ----------------------
     private void BtnSend_Clicked() {
         EnterMessage();
     }
-
 
     private void TxtMessageKeyDown(KeyDownEvent e) {
         if (e.keyCode == KeyCode.Return) {
@@ -68,13 +63,9 @@ public class ChatUi : MonoBehaviour {
         btnSend.SetEnabled(changeEvent.newValue != string.Empty);
     }
 
-    // ----------------------
-    // Public
-    // ----------------------
     public Label addEntry(string message, Color color) {
         var lbl = new Label(message) {
-            style =
-            {
+            style = {
                 fontSize = fontSize,
                 whiteSpace = WhiteSpace.Normal,
                 color = color
@@ -82,23 +73,34 @@ public class ChatUi : MonoBehaviour {
         };
 
         scroller.Add(lbl);
+        StartCoroutine(AdjustScrollPosition());
+
         return lbl;
     }
 
+    private IEnumerator AdjustScrollPosition() {
+        yield return new WaitForEndOfFrame();
+
+        float contentHeight = scroller.contentContainer.resolvedStyle.height;
+        float scrollViewHeight = scroller.resolvedStyle.height;
+
+        if (contentHeight < scrollViewHeight) {
+            scroller.scrollOffset = new Vector2(0, 0);
+        } else {
+            float desiredOffset = contentHeight - scrollViewHeight;
+            scroller.scrollOffset = new Vector2(0, desiredOffset);
+        }
+    }
 
     public Label addEntry(string message) {
         return addEntry(message, defaultTextColor);
     }
 
-
-    public Label addEntry(string from, string message, Color color)
-    {
+    public Label addEntry(string from, string message, Color color) {
         return addEntry($"[{from}]:  {message}", color);
     }
-
 
     public Label addEntry(string from, string message) {
         return addEntry(from, message, defaultTextColor);
     }
-
 }
