@@ -95,6 +95,11 @@ public class ChatServer : NetworkBehaviour
 
     private void OnChatUiMessageEntered(string message)
     {
+          if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
         SendChatMessageServerRpc(message);
     }
 
