@@ -8,7 +8,11 @@ public class ChatServer : NetworkBehaviour
     public ChatUi chatUi;
     private const ulong SYSTEM_ID = ulong.MaxValue;
     private ulong[] dmClientIds = new ulong[2];
-    private const string WHISPER_PREFIX = "<whisper>";
+
+    private readonly Color COLOR_SYSTEM = Color.green;
+    private readonly Color COLOR_USER_SELF = Color.magenta;
+    private readonly Color COLOR_SERVER = Color.green;
+    private readonly Color COLOR_ERROR = Color.red;
 
     void Start()
     {
@@ -40,23 +44,19 @@ public class ChatServer : NetworkBehaviour
     private void DisplayServerOrHostMessage()
     {
         string message = IsHost 
-            ? $"You are the host AND client {NetworkManager.LocalClientId}" 
+            ? $"Welcome, you are the host AND client {NetworkManager.LocalClientId}" 
             : "You are the server";
-        DisplayMessageLocally(SYSTEM_ID, message);
+        DisplayMessageLocally(SYSTEM_ID, message, false, COLOR_SYSTEM);
     }
 
     private void DisplayClientMessage()
     {
-        DisplayMessageLocally(SYSTEM_ID, $"You are the client {NetworkManager.LocalClientId}");
+        DisplayMessageLocally(SYSTEM_ID, $"Welcome to the server, you are client {NetworkManager.LocalClientId}", false, COLOR_SYSTEM);
     }
 
     private void ServerOnClientConnected(ulong clientId)
     {
-        if (IsHost)
-        {
-            SendWelcomeMessageToClientRpc($"Welcome, I see you Player({clientId}) have connected to the server, well done!", clientId, NetworkManager.LocalClientId);
-        }
-        SendGlobalMessage($"Player {clientId} has connected to the server.");
+        SendGlobalMessageExcept($"Player {clientId} has connected to the server.", clientId);
     }
 
     private void ServerOnClientDisconnect(ulong clientId)
@@ -64,20 +64,33 @@ public class ChatServer : NetworkBehaviour
         SendGlobalMessage($"Player {clientId} has disconnected from the server.");
     }
 
-    private void DisplayMessageLocally(ulong from, string message)
+    private void DisplayMessageLocally(ulong from, string message, bool isWhisper = false, Color overrideColor = default)
     {
-        string fromStr = $"Player {from}";
-        Color textColor = chatUi.defaultTextColor;
-        if (from == NetworkManager.LocalClientId)
-        {
-            fromStr = "you";
-            textColor = Color.magenta;
-        }
-        else if (from == SYSTEM_ID)
+        string fromStr;
+        Color textColor;
+
+        if (from == SYSTEM_ID)
         {
             fromStr = "SYS";
-            textColor = Color.green;
+            textColor = COLOR_SYSTEM;
         }
+        else if (from == NetworkManager.LocalClientId)
+        {
+            fromStr = isWhisper ? $"You whispered" : "you";
+            textColor = COLOR_USER_SELF;
+        }
+        else
+        {
+            fromStr = isWhisper ? $"Player {from} whispered you" : $"Player {from}";
+            textColor = chatUi.defaultTextColor;
+        }
+
+        // Check if an override color is provided and it's not the default clear color
+        if (overrideColor != Color.clear) 
+        {
+            textColor = overrideColor;
+        }
+
         chatUi.addEntry(fromStr, message, textColor);
     }
 
@@ -105,6 +118,13 @@ public class ChatServer : NetworkBehaviour
         string clientIdStr = parts[0].Replace("@", "");
         if (ulong.TryParse(clientIdStr, out ulong toClientId))
         {
+            if (toClientId == senderClientId)
+            {
+                // Prevent players from whispering to themselves
+                SendChatNotificationServerRpc("You cannot whisper to yourself.", senderClientId, COLOR_ERROR);
+                return;
+            }
+            
             if (NetworkManager.Singleton.ConnectedClients.ContainsKey(toClientId))
             {
                 string whisperMessage = string.Join(" ", parts, 1, parts.Length - 1);
@@ -112,33 +132,12 @@ public class ChatServer : NetworkBehaviour
             }
             else
             {
-                SendChatNotificationServerRpc($"The message could not be sent. Player {toClientId} is not connected.", senderClientId);
+                SendChatNotificationServerRpc($"The message could not be sent. Player {toClientId} is not connected.", senderClientId, COLOR_ERROR);
             }
         }
         else
         {
-            SendChatNotificationServerRpc($"Invalid client ID: {clientIdStr}", senderClientId);
-        }
-    }
-
-    [ServerRpc(RequireOwnership = false)]
-    public void SendChatNotificationServerRpc(string message, ulong targetClientId, ServerRpcParams serverRpcParams = default)
-    {
-        ReceiveChatMessageClientRpc(message, SYSTEM_ID, new ClientRpcParams { Send = { TargetClientIds = new ulong[] { targetClientId } } });
-    }
-
-    [ClientRpc]
-    public void ReceiveChatMessageClientRpc(string message, ulong from, ClientRpcParams clientRpcParams = default)
-    {
-        DisplayMessageLocally(from, message);
-    }
-
-    [ClientRpc]
-    public void SendWelcomeMessageToClientRpc(string message, ulong targetClientId, ulong fromClientId, ClientRpcParams clientRpcParams = default)
-    {
-        if (NetworkManager.LocalClientId == targetClientId)
-        {
-            DisplayMessageLocally(fromClientId, message);
+            SendChatNotificationServerRpc($"Invalid client ID: {clientIdStr}", senderClientId, COLOR_ERROR);
         }
     }
 
@@ -146,18 +145,70 @@ public class ChatServer : NetworkBehaviour
     {
         dmClientIds[0] = from;
         dmClientIds[1] = to;
-        ClientRpcParams rpcParams = default;
-        rpcParams.Send.TargetClientIds = dmClientIds;
+        ClientRpcParams rpcParams = new ClientRpcParams
+        {
+            Send = { TargetClientIds = dmClientIds }
+        };
 
-        ReceiveChatMessageClientRpc($"{WHISPER_PREFIX} {message}", from, rpcParams);
+        ReceiveWhisperMessageClientRpc(message, from, to, rpcParams);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void SendChatNotificationServerRpc(string message, ulong targetClientId, Color color = default, ServerRpcParams serverRpcParams = default)
+    {
+        ClientRpcParams clientRpcParams = new ClientRpcParams
+        {
+            Send = { TargetClientIds = new ulong[] { targetClientId } }
+        };
+        ReceiveChatMessageClientRpc(message, SYSTEM_ID, color, clientRpcParams);
+    }
+
+    [ClientRpc]
+    public void ReceiveChatMessageClientRpc(string message, ulong from, Color color = default, ClientRpcParams clientRpcParams = default)
+    {
+        DisplayMessageLocally(from, message, false, color);
+    }
+
+    [ClientRpc]
+    public void ReceiveWhisperMessageClientRpc(string message, ulong from, ulong to, ClientRpcParams clientRpcParams = default)
+    {
+        if (NetworkManager.LocalClientId == to)
+        {
+            // Receiving a whisper
+            DisplayMessageLocally(from, message, isWhisper: true);
+        }
+        else if (NetworkManager.LocalClientId == from)
+        {
+            // You sent a whisper
+            DisplayWhisperedMessage(to, message);
+        }
+    }
+
+    private void DisplayWhisperedMessage(ulong to, string message)
+    {
+        string toStr = $"You whispered Player {to}";
+        chatUi.addEntry(toStr, message, COLOR_USER_SELF);
     }
 
     private void SendGlobalMessage(string message)
     {
         foreach (var client in NetworkManager.Singleton.ConnectedClients)
         {
-            ReceiveChatMessageClientRpc(message, SYSTEM_ID, new ClientRpcParams { Send = { TargetClientIds = new ulong[] { client.Value.ClientId } } });
+            ReceiveChatMessageClientRpc(message, SYSTEM_ID, Color.clear, new ClientRpcParams { Send = { TargetClientIds = new ulong[] { client.Value.ClientId } } });
         }
+    }
+
+    private void SendGlobalMessageExcept(string message, ulong exceptionClientId)
+    {
+        List<ulong> targetClientIds = new List<ulong>();
+        foreach (var client in NetworkManager.Singleton.ConnectedClients)
+        {
+            if (client.Value.ClientId != exceptionClientId)
+            {
+                targetClientIds.Add(client.Value.ClientId);
+            }
+        }
+        ReceiveChatMessageClientRpc(message, SYSTEM_ID, Color.clear, new ClientRpcParams { Send = { TargetClientIds = targetClientIds.ToArray() } });
     }
 
     private new void OnDestroy()
