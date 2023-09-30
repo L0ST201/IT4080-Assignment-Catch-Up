@@ -18,14 +18,14 @@ public class LobbyManager : NetworkBehaviour
     {
         InitializeLobby();
         
-        //startButton.onClick.AddListener(OnStartButtonClicked);
+        startButton.onClick.AddListener(OnStartButtonClicked);
         NetworkManager.OnClientStarted += OnClientStarted;
         NetworkManager.OnServerStarted += OnServerStarted;
     }
 
     private void InitializeLobby()
     {
-        //startButton.gameObject.SetActive(false);
+        startButton.gameObject.SetActive(false);
         statusLabel.text = "Start something, like the server or the host or the client.";
     }
 
@@ -39,10 +39,8 @@ public class LobbyManager : NetworkBehaviour
 
     private void OnServerStarted()
     {
-        //startButton.gameObject.SetActive(true);
+        startButton.gameObject.SetActive(true);
         statusLabel.text = "You are the host, please press start game when you are ready";
-        //starts the game for user (this is temporary, will be later removed )
-        OnStartButtonClicked();
     }
 
     private void OnStartButtonClicked()
@@ -79,7 +77,7 @@ public class LobbyManager : NetworkBehaviour
         Debug.Log("Attempting to load ArenaOne/TestChat scene");
         if (NetworkManager.Singleton.IsServer)
         {
-            NetworkManager.SceneManager.LoadScene("TestChat", UnityEngine.SceneManagement.LoadSceneMode.Single);
+            NetworkManager.SceneManager.LoadScene("ArenaOne", UnityEngine.SceneManagement.LoadSceneMode.Single);
         }
     }
     public void OnQuitGameButtonClicked()

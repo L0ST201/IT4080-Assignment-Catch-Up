@@ -12,31 +12,34 @@ public class NetworkHelper : MonoBehaviour
     public Button serverButton;
     public Button shutdownButton;
     public Text statusText;
+    public Text clientIdText; // New text UI to display the client's ID
 
     public NetworkHandler networkHandler;
     public LobbyManager lobbyManager;
+    private NetworkManager _netMgr;
 
     private void Start()
     {
+        _netMgr = NetworkManager.Singleton;
         if (hostButton != null)
-            hostButton.onClick.AddListener(() => NetworkManager.Singleton.StartHost());
+            hostButton.onClick.AddListener(() => _netMgr.StartHost());
         if (clientButton != null)
-            clientButton.onClick.AddListener(() => NetworkManager.Singleton.StartClient());
+            clientButton.onClick.AddListener(() => _netMgr.StartClient());
         if (serverButton != null)
-            serverButton.onClick.AddListener(() => NetworkManager.Singleton.StartServer());
+            serverButton.onClick.AddListener(() => _netMgr.StartServer());
 
         if (shutdownButton != null)
         {
             shutdownButton.onClick.AddListener(() => 
             {
-                Debug.Log("Shutdown button pressed");
+                Log("Shutdown button pressed");
                 if (networkHandler != null)
                 {
                     networkHandler.ShutdownServer();
                 }
                 else
                 {
-                    NetworkManager.Singleton.Shutdown();
+                    _netMgr.Shutdown();
                 }
 
                 if (lobbyManager != null)
@@ -51,13 +54,14 @@ public class NetworkHelper : MonoBehaviour
     {
         UpdateButtonVisibility();
         UpdateStatusText();
+        UpdateClientIdText(); // New method to update the client's ID text
     }
 
     private void UpdateButtonVisibility()
     {
-        if (NetworkManager.Singleton != null && hostButton != null && clientButton != null && serverButton != null && shutdownButton != null)
+        if (_netMgr != null && hostButton != null && clientButton != null && serverButton != null && shutdownButton != null)
         {
-            if (!NetworkManager.Singleton.IsClient && !NetworkManager.Singleton.IsServer)
+            if (!_netMgr.IsClient && !_netMgr.IsServer)
             {
                 hostButton.gameObject.SetActive(true);
                 clientButton.gameObject.SetActive(true);
@@ -79,17 +83,54 @@ public class NetworkHelper : MonoBehaviour
         if (statusText == null)
             return;
 
-        string transportTypeName = NetworkManager.Singleton.NetworkConfig.NetworkTransport.GetType().Name;
-        UnityTransport transport = NetworkManager.Singleton.GetComponent<UnityTransport>();
+        string transportTypeName = _netMgr.NetworkConfig.NetworkTransport.GetType().Name;
+        UnityTransport transport = _netMgr.GetComponent<UnityTransport>();
         string serverPort = "?";
         if (transport != null)
         {
             serverPort = $"{transport.ConnectionData.Address}:{transport.ConnectionData.Port}";
         }
 
-        string mode = NetworkManager.Singleton.IsHost ?
-            "Host" : NetworkManager.Singleton.IsServer ? "Server" : "Client";
-
+        string mode = _netMgr.IsHost ? "Host" : _netMgr.IsServer ? "Server" : "Client";
         statusText.text = $"Transport: {transportTypeName} [{serverPort}]\nMode: {mode}";
+    }
+
+    private void UpdateClientIdText()
+    {
+        if (clientIdText == null || _netMgr == null)
+            return;
+
+        if (_netMgr.IsClient)
+        {
+            clientIdText.text = $"ClientId = {_netMgr.LocalClientId}";
+        }
+        else
+        {
+            clientIdText.text = "";
+        }
+    }
+
+    private string GetNetworkMode()
+    {
+        if (_netMgr.IsServer)
+        {
+            if (_netMgr.IsHost)
+            {
+                return "host";
+            }
+            return "server";
+        }
+        return "client";
+    }
+
+     public void Log(string msg)
+    {
+        Debug.Log($"[{GetNetworkMode()} {_netMgr.LocalClientId}]: {msg}");
+    }
+
+    public void Log(NetworkBehaviour what, string msg)
+    {
+        ulong ownerId = what.OwnerClientId;
+        Debug.Log($"[{GetNetworkMode()} {_netMgr.LocalClientId}][{what.GetType().Name} {ownerId}]: {msg}");
     }
 }
