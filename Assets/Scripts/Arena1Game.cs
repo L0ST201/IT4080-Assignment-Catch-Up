@@ -27,10 +27,6 @@ public class Arena1Game : NetworkBehaviour
         {
             SpawnPlayers();
         }
-        else
-        {
-            Debug.Log("Not a server. Players not spawned.");
-        }
     }
 
     private void SetCameraAndListenerState()

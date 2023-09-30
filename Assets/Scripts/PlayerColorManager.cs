@@ -73,7 +73,7 @@ public class PlayerColorManager : NetworkBehaviour
             Color assignedColor = availableColors[0];
             availableColors.RemoveAt(0);
             networkedColor.Value = assignedColor;
-            Debug.Log($"Assigned color {assignedColor} to client {OwnerClientId}");
+           // Debug.Log($"Assigned color {assignedColor} to client {OwnerClientId}");
         }
         else
         {
@@ -84,7 +84,6 @@ public class PlayerColorManager : NetworkBehaviour
 
     void OnApplicationQuit()
     {
-        Debug.Log("OnApplicationQuit called in PlayerColorManager");
         isApplicationQuitting = true;
     }
 

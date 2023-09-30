@@ -12,7 +12,6 @@ public class NetworkHelper : MonoBehaviour
     public Button serverButton;
     public Button shutdownButton;
     public Text statusText;
-    public Text clientIdText; // New text UI to display the client's ID
 
     public NetworkHandler networkHandler;
     public LobbyManager lobbyManager;
@@ -20,7 +19,8 @@ public class NetworkHelper : MonoBehaviour
 
     private void Start()
     {
-        _netMgr = NetworkManager.Singleton;
+         _netMgr = NetworkManager.Singleton;
+
         if (hostButton != null)
             hostButton.onClick.AddListener(() => _netMgr.StartHost());
         if (clientButton != null)
@@ -32,7 +32,6 @@ public class NetworkHelper : MonoBehaviour
         {
             shutdownButton.onClick.AddListener(() => 
             {
-                Log("Shutdown button pressed");
                 if (networkHandler != null)
                 {
                     networkHandler.ShutdownServer();
@@ -54,12 +53,11 @@ public class NetworkHelper : MonoBehaviour
     {
         UpdateButtonVisibility();
         UpdateStatusText();
-        UpdateClientIdText(); // New method to update the client's ID text
     }
 
     private void UpdateButtonVisibility()
     {
-        if (_netMgr != null && hostButton != null && clientButton != null && serverButton != null && shutdownButton != null)
+        if (NetworkManager.Singleton != null && hostButton != null && clientButton != null && serverButton != null && shutdownButton != null)
         {
             if (!_netMgr.IsClient && !_netMgr.IsServer)
             {
@@ -91,46 +89,45 @@ public class NetworkHelper : MonoBehaviour
             serverPort = $"{transport.ConnectionData.Address}:{transport.ConnectionData.Port}";
         }
 
-        string mode = _netMgr.IsHost ? "Host" : _netMgr.IsServer ? "Server" : "Client";
-        statusText.text = $"Transport: {transportTypeName} [{serverPort}]\nMode: {mode}";
-    }
-
-    private void UpdateClientIdText()
-    {
-        if (clientIdText == null || _netMgr == null)
-            return;
+        string mode = "Client";
+        if (_netMgr.IsHost)
+        {
+            mode = "Host";
+        }
+        else if (_netMgr.IsServer)
+        {
+            mode = "Server";
+        }
 
         if (_netMgr.IsClient)
         {
-            clientIdText.text = $"ClientId = {_netMgr.LocalClientId}";
+            statusText.text = $"Transport: {transportTypeName} [{serverPort}]\nMode: {mode}\nClientId = {_netMgr.LocalClientId}";
         }
         else
         {
-            clientIdText.text = "";
+            statusText.text = $"Transport: {transportTypeName} [{serverPort}]\nMode: {mode}";
         }
     }
 
-    private string GetNetworkMode()
-    {
-        if (_netMgr.IsServer)
-        {
-            if (_netMgr.IsHost)
-            {
-                return "host";
-            }
-            return "server";
+    public string GetNetworkMode() {
+        string type = "Client";
+        if(_netMgr.IsHost) {
+            type = "Host";
+        } else if(_netMgr.IsServer) {
+            type = "Server";
         }
-        return "client";
+        return type;
     }
 
-     public void Log(string msg)
+    public void Log(string msg) 
     {
-        Debug.Log($"[{GetNetworkMode()} {_netMgr.LocalClientId}]: {msg}");
+        ulong clientId = _netMgr.LocalClientId;
+        Debug.Log($"[{GetNetworkMode()} {clientId}]: {msg}");
     }
 
-    public void Log(NetworkBehaviour what, string msg)
-    {
-        ulong ownerId = what.OwnerClientId;
-        Debug.Log($"[{GetNetworkMode()} {_netMgr.LocalClientId}][{what.GetType().Name} {ownerId}]: {msg}");
+
+    public void Log(NetworkBehaviour what, string msg) {
+        ulong ownerId = what.GetComponent<NetworkObject>().OwnerClientId;
+        Debug.Log($"[{GetNetworkMode()} {_netMgr.LocalClientId}] [{what.GetType().Name}]: {msg}");
     }
 }

@@ -476,6 +476,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6def7e221e9844f97841b26c69e0ecfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  networkHelper: {fileID: 376327329}
   statusText: {fileID: 683640727}
 --- !u!114 &504755220
 MonoBehaviour:
@@ -1552,7 +1553,7 @@ MonoBehaviour:
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
-  m_HorizontalAlignment: 1
+  m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
   m_textAlignment: 65535
   m_characterSpacing: 0
@@ -2199,7 +2200,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   startButton: {fileID: 1120855603}
-  statusLabel: {fileID: 683640727}
+  statusLabel: {fileID: 1286177738}
+  statusText: {fileID: 683640727}
 --- !u!114 &1745851863
 MonoBehaviour:
   m_ObjectHideFlags: 0

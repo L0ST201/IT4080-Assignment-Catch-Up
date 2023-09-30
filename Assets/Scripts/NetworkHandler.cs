@@ -6,77 +6,66 @@ using TMPro;
 
 public class NetworkHandler : NetworkBehaviour
 {
+    public NetworkHelper NetworkHelper;
+
     [SerializeField]
     private TextMeshProUGUI statusText;
 
-    private enum NetworkStatus
-    {
-        ManualTest,
-        Host,
-        Server,
-        Client,
-        NothingYet,
-        Disconnected
-    }
-
-    private NetworkStatus currentStatus = NetworkStatus.ManualTest;
+    private NetworkManager _netMgr;
 
     void Start()
     {
+        _netMgr = NetworkManager.Singleton;
         NetworkManager.Singleton.OnClientStarted += OnClientStarted;
         NetworkManager.Singleton.OnServerStarted += OnServerStarted;
     }
 
     private void Update()
     {
-        UpdateStatusText();
-    }
-
-    private void UpdateStatusText()
-    {
         if (statusText == null) return;
 
-        string status;
-        switch (currentStatus)
+        if (NetworkHelper == null)
         {
-            case NetworkStatus.Host:
-                status = "I am the Host!";
-                break;
-            case NetworkStatus.Server:
-                status = "I am the Server!";
-                break;
-            case NetworkStatus.Client:
-                status = "I am a Client!";
-                break;
-            case NetworkStatus.Disconnected:
-                status = "Disconnected";
-                break;
-            case NetworkStatus.NothingYet:
-            default:
-                status = "... Nothing Yet!";
-                break;
+            Debug.LogError("NetworkHelper reference is not set in NetworkHandler.");
+            return;
         }
 
-        statusText.text = "Status: " + status;
+        // Update the statusText UI component with latest status
+        statusText.text = GetCurrentStatus();
     }
 
-    private void ResetStatus()
+    private string GetCurrentStatus()
     {
-        currentStatus = NetworkStatus.NothingYet;
+        if (IsHost)
+        {
+            return "I am the Host!";
+        }
+        else if (_netMgr.IsServer)
+        {
+            return "I am the Server!";
+        }
+        else if (_netMgr.IsClient)
+        {
+            return "I am a Client!";
+        }
+        return "... Nothing Yet!";
     }
 
     private void OnClientStarted()
     {
-        if (!IsHost)
-        {
-            currentStatus = NetworkStatus.Client;
-        }
+        NetworkHelper.Log("!! Client Started !!");
+        NetworkHelper.Log("I AM a Server! " + _netMgr.LocalClientId);
+        NetworkHelper.Log("I AM a Host! " + _netMgr.LocalClientId + "/0");
+        NetworkHelper.Log("I AM a Client! " + _netMgr.LocalClientId);
         SubscribeClientEvents();
     }
 
     private void OnServerStarted()
     {
-        currentStatus = IsHost ? NetworkStatus.Host : NetworkStatus.Server;
+        NetworkHelper.Log("!! Server Started !!");
+        NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}");
+        NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/0");
+        NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}");
         SubscribeServerEvents();
     }
 
@@ -110,23 +99,24 @@ public class NetworkHandler : NetworkBehaviour
 
     private void ClientOnClientConnected(ulong clientId)
     {
-        // Placeholder for future logic
+        NetworkHelper.Log($"Client {clientId} connected to the server");
+        if (clientId == _netMgr.LocalClientId)
+        {
+            NetworkHelper.Log($"I have connected {clientId}");
+        }
     }
 
     private void ClientOnClientDisconnected(ulong clientId)
     {
-        if (IsClient && !IsHost)
-        {
-            currentStatus = NetworkStatus.Disconnected;
-        }
+        NetworkHelper.Log($"Client {clientId} disconnected from the server");
     }
 
     private void ClientOnClientStopped(bool indicator)
     {
-        if (IsClient)
-        {
-            currentStatus = NetworkStatus.Disconnected;
-        }
+        NetworkHelper.Log("!! Client Stopped !!");
+        NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}");
+        NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/0");
+        NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}");
         UnsubscribeClientEvents();
     }
 
@@ -142,12 +132,15 @@ public class NetworkHandler : NetworkBehaviour
 
     private void ServerOnServerStopped(bool indicator)
     {
+        NetworkHelper.Log("!! Server Stopped !!");
+        NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}");
+        NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/0");
+        NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}");
         UnsubscribeServerEvents();
     }
 
     public void ShutdownServer()
     {
-        currentStatus = NetworkStatus.Disconnected;
         NetworkManager.Singleton.Shutdown();
     }
 }
