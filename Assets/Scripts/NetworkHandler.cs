@@ -57,7 +57,7 @@ public class NetworkHandler : NetworkBehaviour
         {
             NetworkHelper.Log("!! Client Started !!", _netMgr, true);
             NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}", _netMgr, true);
-            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
+            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count - 1}", _netMgr, true);
             NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
         }
         else
@@ -74,7 +74,7 @@ public class NetworkHandler : NetworkBehaviour
         NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}", _netMgr, true);
         if (IsHost)
         {
-            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
+            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count - 1}", _netMgr, true);
             NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
         }
         SubscribeServerEvents();
@@ -146,7 +146,7 @@ public class NetworkHandler : NetworkBehaviour
         {
             NetworkHelper.Log("!! Client Stopped !!", _netMgr, true);
             NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}", _netMgr, true);
-            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
+            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count - 1}", _netMgr, true);
             NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
         }
         else
@@ -172,7 +172,7 @@ public class NetworkHandler : NetworkBehaviour
         NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}", _netMgr, true);
         if (IsHost)
         {
-            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
+            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count - 1}", _netMgr, true);
             NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
         }
     }
