@@ -110,14 +110,18 @@ public class NetworkHandler : NetworkBehaviour
 
     private void ClientOnClientConnected(ulong clientId)
     {
-        // Skip processing for the client's own connection event
-        if (clientId == _netMgr.LocalClientId)
+        if (IsHost)
+        {
+            NetworkHelper.Log($"Client {clientId} connected to the server", _netMgr, true);
+            if (clientId == _netMgr.LocalClientId)
+            {
+                NetworkHelper.Log($"I have connected {clientId}", _netMgr, true);
+            }
+        }
+        else if (clientId == _netMgr.LocalClientId)
         {
             NetworkHelper.Log($"I have connected {clientId}", _netMgr);
-            return;
         }
-
-        NetworkHelper.Log($"Client {clientId} connected to the server", _netMgr);
     }
 
    private void ClientOnClientDisconnected(ulong clientId)
@@ -166,8 +170,11 @@ public class NetworkHandler : NetworkBehaviour
     {
         NetworkHelper.Log("!! Server Stopped !!", _netMgr, true);
         NetworkHelper.Log($"I AM a Server! {_netMgr.LocalClientId}", _netMgr, true);
-        NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
-        NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
+        if (IsHost)
+        {
+            NetworkHelper.Log($"I AM a Host! {_netMgr.LocalClientId}/{_netMgr.ConnectedClients.Count}", _netMgr, true);
+            NetworkHelper.Log($"I AM a Client! {_netMgr.LocalClientId}", _netMgr, true);
+        }
     }
 
     public void ShutdownServer()
