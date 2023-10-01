@@ -476,7 +476,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6def7e221e9844f97841b26c69e0ecfd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  networkHelper: {fileID: 376327329}
+  NetworkHelper: {fileID: 376327329}
   statusText: {fileID: 683640727}
 --- !u!114 &504755220
 MonoBehaviour:

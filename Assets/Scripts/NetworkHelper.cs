@@ -119,12 +119,17 @@ public class NetworkHelper : MonoBehaviour
         return type;
     }
 
-    public void Log(string msg) 
+    public static void Log(string message, NetworkManager netMgr, bool isHost = false)
     {
-        ulong clientId = _netMgr.LocalClientId;
-        Debug.Log($"[{GetNetworkMode()} {clientId}]: {msg}");
+        if (isHost)
+        {
+            UnityEngine.Debug.Log($"[Host {netMgr.LocalClientId}]: {message}");
+        }
+        else
+        {
+            UnityEngine.Debug.Log($"[client {netMgr.LocalClientId}]:  {message}");
+        }
     }
-
 
     public void Log(NetworkBehaviour what, string msg) {
         ulong ownerId = what.GetComponent<NetworkObject>().OwnerClientId;
