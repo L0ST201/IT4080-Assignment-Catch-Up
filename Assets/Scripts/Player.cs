@@ -5,6 +5,7 @@ using Unity.Netcode;
 
 public class Player : NetworkBehaviour
 {
+    [Header("Movement Settings")]
     [SerializeField] private float movementSpeed = 5f;
     [SerializeField] private float slowWalkMultiplier = 0.5f;
     [SerializeField] private float mouseSensitivity = 2f;
@@ -16,18 +17,23 @@ public class Player : NetworkBehaviour
     private Camera playerCamera;
     private Vector3 moveDirection = Vector3.zero;
     private CharacterController characterController;
+    private Animator animator; 
     private float verticalLookRotation = 0f;
 
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
 
+    private bool isReloading = false;
+
     private void Awake()
     {
         playerCamera = transform.Find("Camera").GetComponent<Camera>();
         characterController = GetComponent<CharacterController>();
+        animator = GetComponent<Animator>(); 
 
         if (!playerCamera) Debug.LogError("Player camera not found.");
         if (!characterController) Debug.LogError("CharacterController not found on player.");
+        if (!animator) Debug.LogError("Animator not found on player."); 
     }
 
     private void Start()
@@ -61,22 +67,86 @@ public class Player : NetworkBehaviour
     {
         float xMove = Input.GetAxis("Horizontal");
         float zMove = Input.GetAxis("Vertical");
-
         bool isShiftKeyDown = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
         Vector3 move = transform.right * xMove + transform.forward * zMove;
-
         float currentSpeed = isShiftKeyDown ? movementSpeed * slowWalkMultiplier : movementSpeed;
 
         moveDirection.x = move.x * currentSpeed;
         moveDirection.z = move.z * currentSpeed;
         moveDirection.y -= gravity * Time.deltaTime;
 
+    // Animation logic
+        animator.SetFloat("X", xMove);
+        animator.SetFloat("Y", zMove);
+        animator.SetFloat("Speed", Mathf.Sqrt(xMove * xMove + zMove * zMove));
+
+        if (Input.GetMouseButton(1))
+        {
+            animator.SetBool("Aiming", true);
+        }
+        else
+        {
+            animator.SetBool("Aiming", false);
+        }
+
+        if (Input.GetMouseButtonDown(0) && !isReloading)
+        {
+            animator.SetTrigger("Shoot");
+        }
+
+        if (Input.GetKeyDown(KeyCode.R) && !isReloading)
+        {
+            isReloading = true;
+            animator.SetTrigger("Reloading");
+        }
+
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            animator.SetTrigger("Roll");
+        }
+
         if (IsPlayerGrounded() && Input.GetButtonDown("Jump"))
         {
             moveDirection.y = jumpForce;
+            animator.SetFloat("Jump", 1.0f);
         }
+        else
+        {
+            animator.SetFloat("Jump", 0.0f);
+        }
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            animator.SetTrigger("Pickup");
+        }
+
         MoveServerRpc(moveDirection * Time.deltaTime);
+    }
+
+    public void RollSound()
+    {
+        // Roll sound logic goes here
+    }
+
+    public void CantRotate()
+    {
+        // logic for cantRotate on roll
+    }
+
+    public void EndRoll()
+    {
+        // logic for end roll.
+    }
+
+    public void FootStep()
+    {
+        // Footstep sound logic goes here
+    }
+
+      public void EndPickup()
+    {
+        // Handle the end of the pickup animation. 
     }
 
     private void HandleMouseLook()
