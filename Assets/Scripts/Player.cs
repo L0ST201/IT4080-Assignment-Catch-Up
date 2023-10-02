@@ -10,6 +10,8 @@ public class Player : NetworkBehaviour
     [SerializeField] private float mouseSensitivity = 2f;
     [SerializeField] private float jumpForce = 7f;
     [SerializeField] private float gravity = 9.81f;
+    [SerializeField] private Vector3 minBoundary = new Vector3(-2, 0, -2);
+    [SerializeField] private Vector3 maxBoundary = new Vector3(2, 0, 2);
 
     private Camera playerCamera;
     private Vector3 moveDirection = Vector3.zero;
@@ -52,7 +54,7 @@ public class Player : NetworkBehaviour
     private bool IsPlayerGrounded()
     {
         float extraHeightTest = 0.1f;
-        return Physics.Raycast(characterController.bounds.center, Vector3.down, characterController.bounds.extents.y + extraHeightTest);
+        return Physics.SphereCast(characterController.bounds.center, characterController.radius, Vector3.down, out RaycastHit hit, characterController.bounds.extents.y + extraHeightTest);
     }
 
     private void OwnerHandleInput()
@@ -68,13 +70,12 @@ public class Player : NetworkBehaviour
 
         moveDirection.x = move.x * currentSpeed;
         moveDirection.z = move.z * currentSpeed;
+        moveDirection.y -= gravity * Time.deltaTime;
 
         if (IsPlayerGrounded() && Input.GetButtonDown("Jump"))
         {
             moveDirection.y = jumpForce;
         }
-        moveDirection.y -= gravity * Time.deltaTime;
-
         MoveServerRpc(moveDirection * Time.deltaTime);
     }
 
@@ -106,6 +107,14 @@ public class Player : NetworkBehaviour
     [ServerRpc]
     private void MoveServerRpc(Vector3 movement)
     {
+        if (!IsHostPlayer())
+        {
+            Vector3 intendedPosition = transform.position + movement;
+            intendedPosition = Vector3.Max(minBoundary, intendedPosition);
+            intendedPosition = Vector3.Min(maxBoundary, intendedPosition);
+            movement = intendedPosition - transform.position;
+        }
+        
         characterController.Move(movement);
 
         if (transform.position != networkedPosition.Value)
@@ -122,5 +131,10 @@ public class Player : NetworkBehaviour
             transform.Rotate(rotation);
             networkedRotation.Value = transform.rotation;
         }
+    }
+
+    private bool IsHostPlayer()
+    {
+        return NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId;
     }
 }

@@ -540,6 +540,8 @@ MonoBehaviour:
   mouseSensitivity: 3
   jumpForce: 10
   gravity: 25
+  minBoundary: {x: -10, y: 0, z: -10}
+  maxBoundary: {x: 10, y: 0, z: 10}
 --- !u!114 &-5837727509879712024
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -619,7 +621,7 @@ CharacterController:
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 1, z: 0}
 --- !u!23 &-802078452036733107
 MeshRenderer:
   m_ObjectHideFlags: 0

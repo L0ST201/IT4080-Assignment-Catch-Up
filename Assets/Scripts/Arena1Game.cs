@@ -12,12 +12,12 @@ public class Arena1Game : NetworkBehaviour
 
     private int _positionIndex = 0;
     private static readonly Vector3[] _startPositions = 
-    {
-        new Vector3(4, 2, 0),
-        new Vector3(-4, 2, 0),
-        new Vector3(0, 2, 4),
-        new Vector3(0, 2, -4)
-    };
+        {
+            new Vector3(4, 0, 0),
+            new Vector3(-4, 0, 0),
+            new Vector3(0, 0, 4),
+            new Vector3(0, 0, -4)
+        };
 
     void Start()
     {
@@ -56,7 +56,7 @@ public class Arena1Game : NetworkBehaviour
             return;
         }
 
-        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+       foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
             Vector3 spawnPosition = NextPosition();
             
