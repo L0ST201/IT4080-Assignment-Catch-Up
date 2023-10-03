@@ -34,7 +34,7 @@ public class LobbyManager : NetworkBehaviour
     {
         if (!IsHost)
         {
-            statusLabel.text = "Waiting for host to start the game";
+            statusLabel.text = "Waiting for host to start the game.";
             statusText.text = "Connected as Client";
         }
     }
@@ -42,7 +42,7 @@ public class LobbyManager : NetworkBehaviour
     private void OnServerStarted()
     {
         startButton.gameObject.SetActive(true);
-        statusLabel.text = "You are the host, please press start game when you are ready";
+        statusLabel.text = "You are the host, please press start game when you are ready.";
         statusText.text = "Running as Host";
     }
 
@@ -54,7 +54,7 @@ public class LobbyManager : NetworkBehaviour
         }
         else
         {
-            Debug.Log("This instance does not recognize itself as a server");
+            Debug.Log("This instance does not recognize itself as a server.");
         }
     }
 

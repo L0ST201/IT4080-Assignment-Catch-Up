@@ -13,10 +13,10 @@ public class Arena1Game : NetworkBehaviour
     private int _positionIndex = 0;
     private static readonly Vector3[] _startPositions = 
         {
-            new Vector3(4, 0, 0),
-            new Vector3(-4, 0, 0),
-            new Vector3(0, 0, 4),
-            new Vector3(0, 0, -4)
+            new Vector3(6, 0, -16),
+            new Vector3(-6, 0, -16),
+            new Vector3(6, 0, 16),
+            new Vector3(-6, 0, 16)
         };
 
     void Start()

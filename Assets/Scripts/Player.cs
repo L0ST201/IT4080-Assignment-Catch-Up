@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
@@ -14,36 +12,57 @@ public class Player : NetworkBehaviour
     [SerializeField] private Vector3 minBoundary = new Vector3(-2, 0, -2);
     [SerializeField] private Vector3 maxBoundary = new Vector3(2, 0, 2);
 
+    [Header("Aiming Settings")]
+    [SerializeField] private float aimingFOV = 40f;
+    private const float FOV_LERP_SPEED = 5f;
+    private float normalFOV;
+
     private Camera playerCamera;
     private Vector3 moveDirection = Vector3.zero;
     private CharacterController characterController;
-    private Animator animator; 
     private float verticalLookRotation = 0f;
-
+    private bool isReloading = false;
+    private PlayerAnimationHandler playerAnimationHandler;
+    
     private NetworkVariable<Vector3> networkedPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<Quaternion> networkedRotation = new NetworkVariable<Quaternion>();
 
-    private bool isReloading = false;
-
     private void Awake()
+    {
+        InitializeComponents();
+        normalFOV = playerCamera.fieldOfView; 
+    }
+
+    private void InitializeComponents()
     {
         playerCamera = transform.Find("Camera").GetComponent<Camera>();
         characterController = GetComponent<CharacterController>();
-        animator = GetComponent<Animator>(); 
+        Animator animator = GetComponent<Animator>();
 
-        if (!playerCamera) Debug.LogError("Player camera not found.");
-        if (!characterController) Debug.LogError("CharacterController not found on player.");
-        if (!animator) Debug.LogError("Animator not found on player."); 
+        if (!playerCamera) throw new System.NullReferenceException("Player camera not found.");
+        if (!characterController) throw new System.NullReferenceException("CharacterController not found on player.");
+        if (!animator) throw new System.NullReferenceException("Animator not found on player.");
+
+        playerAnimationHandler = new PlayerAnimationHandler(animator);
     }
 
     private void Start()
+    {
+        SetupCameraAndListener();
+        SetupNetworkVariables();
+    }
+
+    private void SetupCameraAndListener()
     {
         playerCamera.enabled = IsOwner;
         if (playerCamera.TryGetComponent(out AudioListener audioListener))
         {
             audioListener.enabled = IsOwner;
         }
+    }
 
+    private void SetupNetworkVariables()
+    {
         networkedPosition.OnValueChanged += OnPositionChanged;
         networkedRotation.OnValueChanged += OnRotationChanged;
     }
@@ -52,7 +71,7 @@ public class Player : NetworkBehaviour
     {
         if (IsOwner)
         {
-            OwnerHandleInput();
+            HandlePlayerInputAndMovement();
             HandleMouseLook();
         }
     }
@@ -63,7 +82,7 @@ public class Player : NetworkBehaviour
         return Physics.SphereCast(characterController.bounds.center, characterController.radius, Vector3.down, out RaycastHit hit, characterController.bounds.extents.y + extraHeightTest);
     }
 
-    private void OwnerHandleInput()
+    private void HandlePlayerInputAndMovement()
     {
         float xMove = Input.GetAxis("Horizontal");
         float zMove = Input.GetAxis("Vertical");
@@ -76,77 +95,51 @@ public class Player : NetworkBehaviour
         moveDirection.z = move.z * currentSpeed;
         moveDirection.y -= gravity * Time.deltaTime;
 
-    // Animation logic
-        animator.SetFloat("X", xMove);
-        animator.SetFloat("Y", zMove);
-        animator.SetFloat("Speed", Mathf.Sqrt(xMove * xMove + zMove * zMove));
+        playerAnimationHandler.UpdateMovementAnimations(xMove, zMove);
 
         if (Input.GetMouseButton(1))
         {
-            animator.SetBool("Aiming", true);
+            playerAnimationHandler.SetAiming(true);
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, aimingFOV, Time.deltaTime * 5f);
         }
         else
         {
-            animator.SetBool("Aiming", false);
+            playerAnimationHandler.SetAiming(false);
+            playerCamera.fieldOfView = Mathf.Lerp(playerCamera.fieldOfView, normalFOV, Time.deltaTime * 5f);
         }
 
         if (Input.GetMouseButtonDown(0) && !isReloading)
         {
-            animator.SetTrigger("Shoot");
+            playerAnimationHandler.TriggerShootAnimation();
         }
 
         if (Input.GetKeyDown(KeyCode.R) && !isReloading)
         {
             isReloading = true;
-            animator.SetTrigger("Reloading");
+            playerAnimationHandler.TriggerReloadAnimation();
         }
 
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            animator.SetTrigger("Roll");
+            playerAnimationHandler.TriggerRollAnimation();
         }
 
         if (IsPlayerGrounded() && Input.GetButtonDown("Jump"))
         {
             moveDirection.y = jumpForce;
-            animator.SetFloat("Jump", 1.0f);
+            playerAnimationHandler.SetJumping(1.0f);
         }
         else
         {
-            animator.SetFloat("Jump", 0.0f);
+            playerAnimationHandler.SetJumping(0.0f);
         }
 
         if (Input.GetKeyDown(KeyCode.E))
         {
-            animator.SetTrigger("Pickup");
+            playerAnimationHandler.TriggerPickupAnimation();
         }
 
         MoveServerRpc(moveDirection * Time.deltaTime);
-    }
-
-    public void RollSound()
-    {
-        // Roll sound logic goes here
-    }
-
-    public void CantRotate()
-    {
-        // logic for cantRotate on roll
-    }
-
-    public void EndRoll()
-    {
-        // logic for end roll.
-    }
-
-    public void FootStep()
-    {
-        // Footstep sound logic goes here
-    }
-
-      public void EndPickup()
-    {
-        // Handle the end of the pickup animation. 
     }
 
     private void HandleMouseLook()
@@ -164,7 +157,7 @@ public class Player : NetworkBehaviour
         RotateServerRpc(rotation);
     }
 
-    private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
+      private void OnPositionChanged(Vector3 oldValue, Vector3 newValue)
     {
         transform.position = newValue;
     }
@@ -184,7 +177,7 @@ public class Player : NetworkBehaviour
             intendedPosition = Vector3.Min(maxBoundary, intendedPosition);
             movement = intendedPosition - transform.position;
         }
-        
+
         characterController.Move(movement);
 
         if (transform.position != networkedPosition.Value)
@@ -203,8 +196,28 @@ public class Player : NetworkBehaviour
         }
     }
 
-    private bool IsHostPlayer()
+   private bool IsHostPlayer()
     {
         return NetworkManager.Singleton != null && NetworkManager.Singleton.LocalClientId == NetworkManager.ServerClientId;
+    }
+
+    public void FootStep()
+    {
+        playerAnimationHandler.FootStep();
+    }
+
+    public void RollSound()
+    {
+        playerAnimationHandler.RollSound();
+    }
+
+    public void CantRotate()
+    {
+        playerAnimationHandler.CantRotate();
+    }
+
+    public void EndRoll()
+    {
+        playerAnimationHandler.EndRoll();
     }
 }
